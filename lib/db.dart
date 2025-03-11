@@ -92,6 +92,18 @@ class Db {
     }
   }
 
+  Future<void> updateSequencesInDb() async {
+    final data = jsonEncode(dbSequences.toMap());
+
+    final res = await db.execute(
+      "UPDATE sys_dbsequences SET data = ? RETURNING *;",
+      [
+        [data],
+      ],
+    );
+    print("updated sequences in db $res");
+  }
+
   Future<void> deinit() async {
     await db.close();
 
@@ -119,17 +131,22 @@ class Db {
 
     // also will need to update the index of the last stream ids and stuff
 
-    final res = await db.execute(
-      '''
-        INSERT INTO sys_eventlog
-          (event_uid, device_uid, device_seq, stream_name, stream_seq, data)
-        VALUES
-          (?, ?, ?, ?, ?, ?)
-        RETURNING *;
-      ''',
-      [eventUid, deviceUid, deviceSeq, streamName, streamSeq, data],
-    );
+    await db.writeTransaction((tx) async {
+      final res = await tx.execute(
+        '''
+          INSERT INTO sys_eventlog
+            (event_uid, device_uid, device_seq, stream_name, stream_seq, data)
+          VALUES
+            (?, ?, ?, ?, ?, ?)
+          RETURNING *;
+        ''',
+        [eventUid, deviceUid, deviceSeq, streamName, streamSeq, data],
+      );
+      // if sequences are properly defined, then a trascation could be used!
+      print('appended event $res');
+    });
 
-    print('appended event $res');
+    // do this without waiting? what can go wrong :D
+    updateSequencesInDb();
   }
 }

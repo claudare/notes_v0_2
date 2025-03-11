@@ -87,11 +87,11 @@ class SequenceMap {
   }
 
   Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{};
+    final outMap = <String, dynamic>{};
     for (final name in map.keys) {
-      map[name] = map[name].current;
+      outMap[name] = map[name]!.current;
     }
-    return map;
+    return outMap;
   }
 
   void add(String name, int value) {

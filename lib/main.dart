@@ -6,9 +6,11 @@ void main() async {
 
   await db.init();
 
-  db.eventLogAppend(streamName: "test", data: '{"hello": "world1"}');
-  db.eventLogAppend(streamName: "test", data: '{"hello": "world2"}');
-  db.eventLogAppend(streamName: "another", data: '{"hello": "world3"}');
+  await db.eventLogAppend(streamName: "test", data: '{"hello": "world1"}');
+  await db.eventLogAppend(streamName: "test", data: '{"hello": "world2"}');
+  await db.eventLogAppend(streamName: "another", data: '{"hello": "world3"}');
   // Close database to release resources
+  //
+  await Future<void>.delayed(Duration(milliseconds: 1000));
   await db.deinit();
 }
