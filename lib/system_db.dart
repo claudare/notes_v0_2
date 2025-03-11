@@ -5,6 +5,7 @@ import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
 import 'package:notes_v0_2/stream_id.dart';
+import 'package:notes_v0_2/system_models.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
@@ -117,20 +118,16 @@ class DbSystem {
   }
 
   // should data really be string, or should it be actual event?
-  Future<void> eventLogAppend({
-    required StreamId streamId,
-    required Event event,
-  }) async {
-    final dataStr = jsonEncode(event.toMap());
+  Future<void> eventLogAppend(EventLogMinimal eventLogMinimal) async {
+    final event = eventLogMinimal.event;
+    final streamId = eventLogMinimal.streamId;
 
+    final dataStr = jsonEncode(event.toMap());
     final streamIdStr = streamId.toString();
-    // need to automatically generate the Id
     final eventUid = newId().toString();
     final deviceUid = thisDeviceId.toString();
     final deviceSeq = dbSequences.getDeviceSequence(deviceUid).next();
     final streamSeq = dbSequences.nextStreamSequence(deviceUid, streamIdStr);
-
-    // also will need to update the index of the last stream ids and stuff
 
     await db.writeTransaction((tx) async {
       final res = await tx.execute(
@@ -147,8 +144,8 @@ class DbSystem {
       print('appended event $res');
     });
 
-    // do this without waiting? what can go wrong :D
+    // update persistent sequences. This is very ugly.
     // FIXME: implement proper denormalized tables for this and use transactions
-    updateSequencesInDb();
+    await updateSequencesInDb();
   }
 }

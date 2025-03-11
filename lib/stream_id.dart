@@ -3,12 +3,28 @@
 // 32 bytes text
 import 'package:notes_v0_2/id.dart';
 
-class GlobalStreamId extends StreamId {
-  GlobalStreamId() : super("global", null);
+class StreamIdGlobal extends StreamId {
+  StreamIdGlobal() : super("global", null);
+
+  static throwIfNotOfType(StreamId streamId) {
+    if (streamId is! StreamIdGlobal &&
+        !streamId.doesConformToType("global", false)) {
+      throw ArgumentError('${streamId.name} is not GlobalStreamId');
+    }
+  }
 }
 
-class NoteStreamId extends StreamId {
-  NoteStreamId(Id id) : super("note", id);
+class StreamIdNote extends StreamId {
+  StreamIdNote(Id id) : super("note", id);
+
+  static throwIfNotOfType(StreamId streamId) {
+    // the check is skipped if it is actually a streamIdNote
+    // there is no way to create it otherwise, as name and id are final
+    if (streamId is! StreamIdNote &&
+        !streamId.doesConformToType("note", false)) {
+      throw ArgumentError('${streamId.name} is not NoteStreamId');
+    }
+  }
 }
 
 class StreamId {
@@ -39,8 +55,6 @@ class StreamId {
     }
   }
 
-  bool get hasId => id != null;
-
   // is this really needed?
   // fix it for nullable id
   // Uint8List getBytes() {
@@ -65,5 +79,19 @@ class StreamId {
       // do not pad on global streams?
       return name;
     }
+  }
+
+  bool doesConformToType(String withName, bool withId) {
+    final hasId = id != null;
+
+    if (withId && !hasId) {
+      return false;
+    } else if (!withId && hasId) {
+      return false;
+    } else if (withName != name) {
+      return false;
+    }
+
+    return true;
   }
 }

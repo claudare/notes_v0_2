@@ -1,5 +1,4 @@
 import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/stream_id.dart';
 
 // following https://dart.dev/language/class-modifiers#sealed
@@ -36,23 +35,18 @@ sealed class Event {
 }
 
 class NewNoteStreamCreated extends Event {
-  StreamId streamId;
+  StreamId streamIdNote;
 
-  NewNoteStreamCreated({required this.streamId}) {
-    if (!streamId.hasId) {
-      throw ArgumentError("NewNoteStreamCreated needs an id");
-    }
+  NewNoteStreamCreated({required this.streamIdNote}) {
+    StreamIdNote.throwIfNotOfType(streamIdNote);
   }
 
   @override
   Future<void> apply(StreamId streamId, AppDb db) async {
-    // TODO: this is untested! Would be nice
-    // but i dont wanna overabstract too
-    if (streamId is! GlobalStreamId) {
-      throw ArgumentError(
-        "NewNoteStreamCreated can only be written to the global stream",
-      );
-    }
+    // this is really overkill, but for now more ways to fail allows to move faster
+    // as less tests are required.
+    StreamIdGlobal.throwIfNotOfType(streamId);
+
     throw UnimplementedError();
   }
 
@@ -60,12 +54,12 @@ class NewNoteStreamCreated extends Event {
 
   @override
   NewNoteStreamCreated.fromMap(Map<String, dynamic> json)
-    : streamId = StreamId.fromString(json['streamId']);
+    : streamIdNote = StreamId.fromString(json['streamId']);
 
   @override
   Map<String, dynamic> toMap() => {
     '_type': _type,
-    'streamId': streamId.toString(),
+    'streamId': streamIdNote.toString(),
   };
 }
 
@@ -75,7 +69,7 @@ class NoteArchived extends Event {
 
   @override
   Future<void> apply(StreamId streamId, AppDb db) async {
-    if (streamId is! NoteStreamId) {
+    if (streamId is! StreamIdNote) {
       throw ArgumentError('Expected a NoteStreamId');
     }
 
