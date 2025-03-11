@@ -9,37 +9,37 @@ import 'package:notes_v0_2/id.dart';
 void main() {
   group('DeviceId', () {
     test('Should create DeviceId with valid value', () {
-      final deviceId = DeviceId(12345);
+      final deviceId = DeviceUid(12345);
       expect(deviceId.value, equals(12345));
     });
 
     test('Should reject DeviceId with invalid value', () {
-      expect(() => DeviceId(-1), throwsArgumentError);
-      expect(() => DeviceId(70000), throwsArgumentError);
+      expect(() => DeviceUid(-1), throwsArgumentError);
+      expect(() => DeviceUid(70000), throwsArgumentError);
     });
 
     test('Should create DeviceId from string', () {
-      final deviceId = DeviceId.fromString('4fr');
+      final deviceId = DeviceUid.fromString('4fr');
       expect(deviceId.value, equals(12345));
     });
 
     test('Should convert DeviceId to string', () {
-      final deviceId = DeviceId(12345);
+      final deviceId = DeviceUid(12345);
       expect(deviceId.toString(), equals('4fr'));
     });
 
     test('Should create random DeviceId within valid range', () {
       for (int i = 0; i < 100; i++) {
-        final deviceId = DeviceId.random();
+        final deviceId = DeviceUid.random();
         expect(deviceId.value, greaterThanOrEqualTo(0));
         expect(deviceId.value, lessThan(65536));
       }
     });
 
     test('Should implement equality correctly', () {
-      final deviceId1 = DeviceId(12345);
-      final deviceId2 = DeviceId(12345);
-      final deviceId3 = DeviceId(54321);
+      final deviceId1 = DeviceUid(12345);
+      final deviceId2 = DeviceUid(12345);
+      final deviceId3 = DeviceUid(54321);
 
       expect(deviceId1 == deviceId2, isTrue);
       expect(deviceId1 == deviceId3, isFalse);
@@ -53,7 +53,7 @@ void main() {
       final deviceIdValue = 12345;
       final counter = 678;
 
-      final id = Id.fromParts(timestamp, deviceIdValue, counter);
+      final id = Uid.fromParts(timestamp, deviceIdValue, counter);
 
       expect(
         id.getTimestamp(),
@@ -68,9 +68,9 @@ void main() {
       final deviceIdValue = 12345;
       final counter = 678;
 
-      final id = Id.fromParts(timestamp, deviceIdValue, counter);
+      final id = Uid.fromParts(timestamp, deviceIdValue, counter);
       final idStr = id.toString();
-      final idFromStr = Id.fromString(idStr);
+      final idFromStr = Uid.fromString(idStr);
 
       expect(idFromStr.getTimestamp(), equals(id.getTimestamp()));
       expect(idFromStr.getDeviceId().value, equals(id.getDeviceId().value));
@@ -78,22 +78,22 @@ void main() {
     });
 
     test('Should reject invalid byte length', () {
-      expect(() => Id(Uint8List(10)), throwsArgumentError);
+      expect(() => Uid(Uint8List(10)), throwsArgumentError);
     });
 
     test('Should reject invalid string format', () {
-      expect(() => Id.fromString('invalid'), throwsFormatException);
-      expect(() => Id.fromString('part1-part2'), throwsFormatException);
+      expect(() => Uid.fromString('invalid'), throwsFormatException);
+      expect(() => Uid.fromString('part1-part2'), throwsFormatException);
       expect(
-        () => Id.fromString('part1-part2-part3-part4'),
+        () => Uid.fromString('part1-part2-part3-part4'),
         throwsFormatException,
       );
     });
 
     test('Should implement equality correctly', () {
-      final id1 = Id.fromParts(1678901234567, 12345, 678);
-      final id2 = Id.fromParts(1678901234567, 12345, 678);
-      final id3 = Id.fromParts(1678901234567, 12345, 679);
+      final id1 = Uid.fromParts(1678901234567, 12345, 678);
+      final id2 = Uid.fromParts(1678901234567, 12345, 678);
+      final id3 = Uid.fromParts(1678901234567, 12345, 679);
 
       expect(id1 == id2, isTrue);
       expect(id1 == id3, isFalse);
@@ -101,10 +101,10 @@ void main() {
     });
 
     test('Should implement Comparable properly', () {
-      final id1 = Id.fromParts(1678901234567, 12345, 678);
+      final id1 = Uid.fromParts(1678901234567, 12345, 678);
       // device Id is a tiebreaker, this is intentional!
-      final id2 = Id.fromParts(1678901234900, 20000, 678);
-      final id3 = Id.fromParts(1678901234900, 12345, 678);
+      final id2 = Uid.fromParts(1678901234900, 20000, 678);
+      final id3 = Uid.fromParts(1678901234900, 12345, 678);
 
       expect(id1.compareTo(id2), equals(-1));
       expect(id2.compareTo(id3), equals(1));
@@ -114,64 +114,64 @@ void main() {
 
   group('IdGenerator', () {
     test('Should generate unique IDs', () {
-      final generator = IdGenerator(DeviceId(12345));
-      final ids = <Id>{};
+      final generator = UidGenerator(DeviceUid(12345));
+      final ids = <Uid>{};
 
       // Generate multiple IDs and ensure they're all unique
       for (int i = 0; i < 100; i++) {
-        final id = generator.newId();
+        final id = generator.newUId();
         expect(ids.contains(id), isFalse);
         ids.add(id);
       }
     });
 
     test('Should generate IDs with correct device ID', () {
-      final deviceId = DeviceId(54321);
-      final generator = IdGenerator(deviceId);
+      final deviceId = DeviceUid(54321);
+      final generator = UidGenerator(deviceId);
 
       for (int i = 0; i < 10; i++) {
-        final id = generator.newId();
+        final id = generator.newUId();
         expect(id.getDeviceId(), equals(deviceId));
       }
     });
 
     test('Should increment counter correctly', () {
-      final generator = IdGenerator(DeviceId(12345), counter: 100);
+      final generator = UidGenerator(DeviceUid(12345), counter: 100);
 
       expect(generator.counter, equals(100));
-      final id1 = generator.newId();
+      final id1 = generator.newUId();
       expect(id1.getCounter(), equals(100));
       expect(generator.counter, equals(101));
 
-      final id2 = generator.newId();
+      final id2 = generator.newUId();
       expect(id2.getCounter(), equals(101));
       expect(generator.counter, equals(102));
     });
 
     test('Should wrap counter correctly', () {
-      final generator = IdGenerator(DeviceId(12345), counter: 65536 - 2);
+      final generator = UidGenerator(DeviceUid(12345), counter: 65536 - 2);
 
-      final id1 = generator.newId();
+      final id1 = generator.newUId();
       expect(id1.getCounter(), equals(65536 - 2));
 
-      final id2 = generator.newId();
+      final id2 = generator.newUId();
       expect(id2.getCounter(), equals(65536 - 1));
 
-      final id3 = generator.newId();
+      final id3 = generator.newUId();
       expect(id3.getCounter(), equals(0));
     });
 
     test('Should reject invalid counter values', () {
       expect(
-        () => IdGenerator(DeviceId(12345), counter: -1),
+        () => UidGenerator(DeviceUid(12345), counter: -1),
         throwsArgumentError,
       );
       expect(
-        () => IdGenerator(DeviceId(12345), counter: 70000),
+        () => UidGenerator(DeviceUid(12345), counter: 70000),
         throwsArgumentError,
       );
 
-      final generator = IdGenerator(DeviceId(12345));
+      final generator = UidGenerator(DeviceUid(12345));
       expect(() => generator.counter = -1, throwsArgumentError);
       expect(() => generator.counter = 70000, throwsArgumentError);
     });
@@ -180,12 +180,12 @@ void main() {
   group('End-to-end tests', () {
     test('Should create and parse ID across different instances', () {
       // Generate an ID
-      final generator = IdGenerator(DeviceId(12345));
-      final id = generator.newId();
+      final generator = UidGenerator(DeviceUid(12345));
+      final id = generator.newUId();
       final idStr = id.toString();
 
       // Parse it back in a different context
-      final parsedId = Id.fromString(idStr);
+      final parsedId = Uid.fromString(idStr);
 
       // Verify all components match
       expect(parsedId.getTimestamp(), equals(id.getTimestamp()));
@@ -195,12 +195,12 @@ void main() {
 
     test('Should generate unique IDs across different generators', () {
       // Create multiple generators with different device IDs
-      final generator1 = IdGenerator(DeviceId(1), counter: 10);
-      final generator2 = IdGenerator(DeviceId(2), counter: 10);
+      final generator1 = UidGenerator(DeviceUid(1), counter: 10);
+      final generator2 = UidGenerator(DeviceUid(2), counter: 10);
 
       // Generate IDs from each
-      final id1 = generator1.newId();
-      final id2 = generator2.newId();
+      final id1 = generator1.newUId();
+      final id2 = generator2.newUId();
 
       // Verify they're all different
       expect(id1 == id2, isFalse);
@@ -211,12 +211,12 @@ void main() {
     });
 
     test('Should handle stress test with many IDs', () {
-      final generator = IdGenerator(DeviceId.random());
+      final generator = UidGenerator(DeviceUid.random());
       final idSet = <String>{};
 
       // Generate a large number of IDs and check for duplicates
       for (int i = 0; i < 10000; i++) {
-        final id = generator.newId();
+        final id = generator.newUId();
         final idStr = id.toString();
         expect(idSet.contains(idStr), isFalse);
         idSet.add(idStr);
@@ -230,7 +230,7 @@ void main() {
 
       // Mock the current time for predictable test
       // In a real implementation, you'd use a clock abstraction that can be mocked
-      final id = Id.fromParts(timestamp, deviceIdValue, counter);
+      final id = Uid.fromParts(timestamp, deviceIdValue, counter);
       final idStr = id.toString();
       expect(idStr.length, equals(19));
 
@@ -248,12 +248,12 @@ void main() {
   // skipped as its kinda useless
   group('Performance tests', () {
     test('Should generate IDs quickly', () {
-      final generator = IdGenerator(DeviceId.random());
+      final generator = UidGenerator(DeviceUid.random());
       final count = 100000;
 
       final stopwatch = Stopwatch()..start();
       for (int i = 0; i < count; i++) {
-        generator.newId();
+        generator.newUId();
       }
       stopwatch.stop();
 

@@ -1,16 +1,78 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-class Id implements Comparable<Id> {
+class Sequence {
+  int value;
+
+  Sequence(this.value) {
+    // assert(value < 1, "sequences must start at 1");
+    if (value < 0) {
+      throw ArgumentError("sequences must be positive");
+    }
+  }
+
+  int next() {
+    value += 1;
+    return value;
+  }
+}
+
+/// I dont think this should be used
+@Deprecated("dont use")
+class StreamId {
+  String name;
+  Uid id;
+
+  StreamId(this.name, this.id) {
+    // TODO: only ascci allowed!
+    if (name.length > 4) {
+      throw ArgumentError("stream name cannot be longer then 4");
+    }
+
+    // pad it to correct length
+    name.padRight(4, '_');
+  }
+
+  // is this really needed?
+  Uint8List getBytes() {
+    final bytes = Uint8List(16);
+    for (var i = 0; i < 4; i++) {
+      bytes[i] = name.codeUnitAt(i);
+    }
+    for (var i = 4; i < 16; i++) {
+      bytes[i] = id.bytes[i - 4];
+    }
+    return bytes;
+  }
+
+  @override
+  String toString() {
+    final idStr = id.toString();
+    return "$name-$idStr";
+  }
+}
+
+/// id is globally unique lexicographically sortable id
+/// binary length is 12
+/// text length is 19
+/// i need to add a prefix. if 4 bytes then
+/// binary length is 16 and text length is 24 nice.
+/// but where does it go?
+/// 1) $ts-$dev-$pre-$count
+/// this is globally unique things in order, but then pre has very little meaning
+/// 2) $pre-$ts-$dev-$count
+/// this removes global uniqueness, but groups things by the stream name
+/// 4 characters is really short though, but $ts-$dev-$count is a unique value
+class Uid implements Comparable<Uid> {
   Uint8List bytes;
 
-  Id(this.bytes) {
+  Uid(this.bytes) {
     if (bytes.length != 12) {
       throw ArgumentError('ID must be exactly 12 bytes');
     }
   }
 
-  Id.fromString(String id) : bytes = Uint8List(12) {
+  Uid.fromString(String id) : bytes = Uint8List(12) {
     final parts = id.split('-');
     if (parts.length != 3) {
       throw FormatException("Invalid ID format");
@@ -29,7 +91,7 @@ class Id implements Comparable<Id> {
   }
 
   /// Creates a new Id from individual timestamp, device ID, and counter values
-  Id.fromParts(int timestamp, int deviceId, int counter)
+  Uid.fromParts(int timestamp, int deviceId, int counter)
     : bytes = Uint8List(12) {
     final view = ByteData.view(bytes.buffer);
     view.setUint64(0, timestamp); // 8 bytes for timestamp
@@ -45,10 +107,10 @@ class Id implements Comparable<Id> {
   }
 
   /// Returns the device ID component
-  DeviceId getDeviceId() {
+  DeviceUid getDeviceId() {
     final view = ByteData.view(bytes.buffer);
     final deviceIdNum = view.getUint16(8);
-    return DeviceId(deviceIdNum);
+    return DeviceUid(deviceIdNum);
   }
 
   /// Returns the counter component
@@ -75,7 +137,7 @@ class Id implements Comparable<Id> {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Id) return false;
+    if (other is! Uid) return false;
 
     for (int i = 0; i < 12; i++) {
       if (bytes[i] != other.bytes[i]) return false;
@@ -95,7 +157,7 @@ class Id implements Comparable<Id> {
   }
 
   @override
-  int compareTo(Id other) {
+  int compareTo(Uid other) {
     for (int i = 0; i < 12; i++) {
       final self = bytes[i];
       final that = other.bytes[i];
@@ -109,28 +171,28 @@ class Id implements Comparable<Id> {
   }
 }
 
-class DeviceId {
-  final int value; // hmmm
+class DeviceUid {
+  final int value; // hmmm, its not bytes
 
-  DeviceId(this.value) {
-    if (value < 0 || value >= _maxCounterValue) {
+  DeviceUid(this.value) {
+    if (value < 0 || value >= _maxDeviceIdValue) {
       throw ArgumentError(
-        'Device ID must be between 0 and ${_maxCounterValue - 1}',
+        'Device ID must be between 0 and ${_maxDeviceIdValue - 1}',
       );
     }
   }
 
   /// Creates a DeviceId from its Base58 string representation
-  DeviceId.fromString(String valueStr) : value = _fromBase58(valueStr) {
-    if (value >= _maxCounterValue) {
+  DeviceUid.fromString(String valueStr) : value = _fromBase58(valueStr) {
+    if (value >= _maxDeviceIdValue) {
       throw FormatException('Device ID value exceeds maximum allowed value');
     }
   }
 
   /// Creates a DeviceId with a random value
-  DeviceId.random() : value = Random.secure().nextInt(_maxCounterValue);
+  DeviceUid.random() : value = Random.secure().nextInt(_maxDeviceIdValue);
 
-  /// Converts the DeviceId to its Base58 string representation
+  /// Converts the DeviceUid to its Base58 string representation
   @override
   String toString() => _toBase58(value, _deviceIdSize);
 
@@ -138,7 +200,7 @@ class DeviceId {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! DeviceId) return false;
+    if (other is! DeviceUid) return false;
     return value == other.value;
   }
 
@@ -147,33 +209,33 @@ class DeviceId {
   int get hashCode => value.hashCode;
 }
 
-class IdGenerator {
-  final DeviceId deviceId;
+class UidGenerator {
+  final DeviceUid deviceId;
   int _counter = 0;
 
   /// Creates an IdGenerator with the specified device ID and optional counter start value
-  IdGenerator(this.deviceId, {int counter = 0}) : _counter = counter {
+  UidGenerator(this.deviceId, {int counter = 0}) : _counter = counter {
     // If no counter provided, start with a random value to reduce collision potential
     if (counter == 0) {
-      _counter = Random.secure().nextInt(_maxDeviceIdValue);
-    } else if (counter < 0 || counter >= _maxDeviceIdValue) {
+      _counter = Random.secure().nextInt(_maxCounterValue);
+    } else if (counter < 0 || counter >= _maxCounterValue) {
       throw ArgumentError(
-        'Counter must be between 0 and ${_maxDeviceIdValue - 1}',
+        'Counter must be between 0 and ${_maxCounterValue - 1}',
       );
     }
   }
 
-  Id newId() {
+  Uid newUId() {
     // Get current timestamp in milliseconds
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final currentCount = _getAndIncrementCounter();
-    return Id.fromParts(timestamp, deviceId.value, currentCount);
+    return Uid.fromParts(timestamp, deviceId.value, currentCount);
   }
 
   /// Increment counter and store the new value
   int _getAndIncrementCounter() {
     int current = _counter;
-    _counter = (_counter + 1) % _maxDeviceIdValue;
+    _counter = (_counter + 1) % _maxCounterValue;
     return current;
   }
 
@@ -182,9 +244,9 @@ class IdGenerator {
 
   /// Sets the counter to a specific value
   set counter(int value) {
-    if (value < 0 || value >= _maxDeviceIdValue) {
+    if (value < 0 || value >= _maxCounterValue) {
       throw ArgumentError(
-        'Counter must be between 0 and ${_maxDeviceIdValue - 1}',
+        'Counter must be between 0 and ${_maxCounterValue - 1}',
       );
     }
     _counter = value;
