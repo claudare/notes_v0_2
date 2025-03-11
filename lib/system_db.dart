@@ -44,7 +44,7 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
   }),
 );
 
-class DbSystem {
+class SystemDb {
   late SqliteDatabase db;
   String? tempPath;
 
@@ -52,7 +52,7 @@ class DbSystem {
 
   late DbSequences dbSequences;
 
-  DbSystem({String? path, required DeviceId deviceUid})
+  SystemDb({String? path, required DeviceId deviceUid})
     : _idGenerator = IdGenerator(deviceUid) {
     if (path == null) {
       tempPath = tempDbPath();

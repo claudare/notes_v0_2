@@ -68,24 +68,6 @@ class NewNoteStreamCreated extends Event {
   };
 }
 
-// soft delete only for now
-class NoteArchived extends Event {
-  NoteArchived();
-
-  @override
-  Future<void> apply(StreamId inStreamId, AppDb db) async {
-    throw UnimplementedError();
-  }
-
-  static const String _type = 'noteArchived';
-
-  @override
-  NoteArchived.fromMap(Map<String, dynamic> json);
-
-  @override
-  Map<String, dynamic> toMap() => {'_type': _type};
-}
-
 class NoteBodyEdited extends Event {
   String value;
 
@@ -105,6 +87,24 @@ class NoteBodyEdited extends Event {
 
   @override
   Map<String, dynamic> toMap() => {'_type': _type, 'value': value};
+}
+
+// soft delete only for now
+class NoteArchived extends Event {
+  NoteArchived();
+
+  @override
+  Future<void> apply(StreamId inStreamId, AppDb db) async {
+    throw UnimplementedError();
+  }
+
+  static const String _type = 'noteArchived';
+
+  @override
+  NoteArchived.fromMap(Map<String, dynamic> json);
+
+  @override
+  Map<String, dynamic> toMap() => {'_type': _type};
 }
 
 /// tags are not created nor destroyed
