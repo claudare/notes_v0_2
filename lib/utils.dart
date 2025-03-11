@@ -1,0 +1,36 @@
+import 'dart:io';
+import 'dart:math';
+
+const _tempDir = '/tmp/sqlite-db';
+
+//https://github.com/powersync-ja/sqlite_async.dart/discussions/13
+String tempDbPath() {
+  final random = Random.secure();
+  final chars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  final length = 10;
+  String filename = '';
+  for (int i = 0; i < length; i++) {
+    filename += chars[random.nextInt(chars.length)];
+  }
+  Directory(_tempDir).createSync(recursive: false);
+  return '$_tempDir/$filename';
+}
+
+Future<void> tempDbCleanup(String path) async {
+  try {
+    await File(path).delete();
+  } on PathNotFoundException {
+    // Not an issue
+  }
+  try {
+    await File("$path-shm").delete();
+  } on PathNotFoundException {
+    // Not an issue
+  }
+  try {
+    await File("$path-wal").delete();
+  } on PathNotFoundException {
+    // Not an issue
+  }
+}
