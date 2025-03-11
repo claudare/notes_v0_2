@@ -3,19 +3,21 @@
 Second attempt at this
 
 Instead of
-`f(event) -> []sqlstatements`
-Do a direct nosql database access through a typed system
-`f(event, dbwraper) -> dbwrapper(state)`
 
-I will still use sqlite though. Create a dwrapper for all objects, make them queryable (sqlite actually has this). Never rouch raw database objects. As comic as it is, the data-tables will look like this:
+`f(event) -> []sqlstatements`
+
+Do a direct nosql database mutation through a typed app db stateUpdater
+
+`f(event, stateUpdater) -> stateUpdater()`
+
+I will still use sqlite though. Create a dwrapper for all objects, make them queryable (sqlite actually has this). Never rouch raw database objects. As comic as it is, most of the application state tables will look like this:
 ```
-id TEXT UNIQUE
-value BLOB
+id VARCHAR(19) PRIMARY KEY NOT NULL
+data BLOB NOT NULL
 ```
-Id should be generated as a random string with preseeding of the device id. Some loweruuid, but with higher density...
+Id is specially crafted for this purpose.
 
 All events are stored inside a stream. All inside a stream.
-
 
 There is a deviceId (fixed string!), devSeqId (autoincrementing per device), streamId (text), streamSeqId (autoincrementing per insert) and data (blob).
 StreamId is only used for quering and optimizing lookups of sorts. This will enable for granular conflict resolution.
@@ -39,3 +41,15 @@ Alternative databases:
 Best to worst
 - [isar](https://pub.dev/packages/isar). Pretty good, but no union support, as in sealed. Plus heavy on code generation. Still uses ffi for "performance" reasons.
 - [objectbox](https://pub.dev/packages/objectbox) meh
+
+Im gonna use `sqlite_async`
+
+# Some definitions
+
+There are also two codebases:
+ - `client` is a flutter app that does all heavy lifting. Stores events and blobs.
+ - `server` is central golang server that stores events and blobs, routes traffic between clients (with auth), exposes a public endpoint, and deals with backups. This uses heavy server-side storage systems such as postgres, redis, minio, etc... The server has no application logic at all. Its a dummy that facilites operation of many clients within one account. In the future it could enable colaboration between servers of separate clients.
+
+Each `client` has a role. There are two type of roles:
+ - `app` is a flutter app. Full UI and everything.
+ - `agent` is a go backend application (or dart app) with lax priviledges that runs on the backend server. This takes heavy jobs away from the app clients such as thumbnail generation, video transcoding, AI face recognition, etc. Ideally the app can do some of these tasks, but not all. There is a separate agent for each app or "task". Maybe can have a backup agent, which does simple backups like server.
