@@ -47,9 +47,9 @@ Im gonna use `sqlite_async`
 # Some definitions
 
 There are also two codebases:
- - `client` is a flutter app that does all heavy lifting. Stores events and blobs.
- - `server` is central golang server that stores events and blobs, routes traffic between clients (with auth), exposes a public endpoint, and deals with backups. This uses heavy server-side storage systems such as postgres, redis, minio, etc... The server has no application logic at all. Its a dummy that facilites operation of many clients within one account. In the future it could enable colaboration between servers of separate clients.
+ - `client` is a strictly dart application that does all heavy lifting. Stores events and blobs.
+ - `server` is central golang server that stores events and blobs, routes traffic between clients (with auth), exposes a public endpoint, and deals with backups. This uses heavy server-side storage systems such as postgres, redis, minio, etc... The server has no application logic at all. Its a dummy that facilites operation of many clients within one account. In the future, it could enable collaboration between servers of separate clients.
 
 Each `client` has a role. There are two type of roles:
  - `app` is a flutter app. Full UI and everything.
- - `agent` is a go backend application (or dart app) with lax priviledges that runs on the backend server. This takes heavy jobs away from the app clients such as thumbnail generation, video transcoding, AI face recognition, etc. Ideally the app can do some of these tasks, but not all. There is a separate agent for each app or "task". Maybe can have a backup agent, which does simple backups like server.
+ - `agent` is a dart app (since dart can ffi C pretty well) or a go backend application with strong data-access priviledges that runs on a powerful server. This takes heavy jobs away from the app clients such as thumbnail generation, video transcoding, AI things, etc. Ideally the app can do some of these tasks, but not all. There is a separate agent for each app or "task". Maybe can have a backup agent, which does simpler backups like the server.
