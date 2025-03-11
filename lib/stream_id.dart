@@ -3,10 +3,10 @@
 // 32 bytes text
 import 'package:notes_v0_2/id.dart';
 
-class StreamIdGlobal extends StreamIdWithoutId {
+class StreamIdGlobal extends StreamId {
   static const _name = "global";
 
-  StreamIdGlobal() : super(_name);
+  StreamIdGlobal() : super(_name, null);
 
   static bool isGlobal(StreamId streamId) {
     print("compare stream id is $streamId, compared to $_name");
@@ -24,7 +24,7 @@ class StreamIdNote extends StreamIdWithId {
   }
 }
 
-abstract class StreamId {
+class StreamId {
   // static const _size = 24;
   static const _maxNameSize = 12; // 12
 
@@ -41,7 +41,7 @@ abstract class StreamId {
   factory StreamId.fromString(String value) {
     final parts = value.split('-');
     if (parts.length == 1) {
-      return StreamIdWithoutId(parts[0]);
+      return StreamId(parts[0], null);
     } else if (parts.length == 4) {
       final name = parts[0];
       final idStr = parts.sublist(1).join('-');
@@ -86,22 +86,5 @@ class StreamIdWithId extends StreamId {
   @override
   String toString() {
     return '$name-${id.toString()}';
-  }
-}
-
-class StreamIdWithoutId extends StreamId {
-  StreamIdWithoutId(String name) : super(name, null);
-
-  factory StreamIdWithoutId.fromString(String name) {
-    if (name.contains('-')) {
-      throw FormatException("Invalid ID format");
-    }
-
-    return StreamIdWithoutId(name);
-  }
-
-  @override
-  String toString() {
-    return name;
   }
 }

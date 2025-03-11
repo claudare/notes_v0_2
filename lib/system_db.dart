@@ -13,34 +13,34 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
     // maybe doing a "proper" normal table system is beneficial for performance in this case
     // execution of this can be async. as all the sequences are stored in memory
     await tx.execute('''
-          CREATE TABLE sys_dbsequences (
-            data BLOB NOT NULL
-          );
-        ''');
+      CREATE TABLE sys_dbsequences (
+        data BLOB NOT NULL
+      );
+    ''');
 
     // this is full raw data of the event
     // it includes a lot, and is heavily indexed.
     // Heavy indexes are needed to quickly find streams
     // and be able to iterate a global view of the events
     await tx.execute('''
-          CREATE TABLE sys_eventlog (
-            event_uid VARCHAR(19) PRIMARY KEY NOT NULL,
-            device_uid VARCHAR(3) NOT NULL,
-            device_seq INTEGER NOT NULL,
-            stream_id TEXT NOT NULL,
-            stream_seq INTEGER NOT NULL,
-            data BLOB NOT NULL
-          );
-        ''');
+      CREATE TABLE sys_eventlog (
+        event_id VARCHAR(19) PRIMARY KEY NOT NULL,
+        device_id VARCHAR(3) NOT NULL,
+        device_seq INTEGER NOT NULL,
+        stream_id TEXT NOT NULL,
+        stream_seq INTEGER NOT NULL,
+        data BLOB NOT NULL
+      );
+    ''');
 
     // An index to query a stream for a particular device
     await tx.execute('''
-          CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_uid, stream_id, stream_seq);
-        ''');
+      CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_id, stream_id, stream_seq);
+    ''');
     // An index to query global ordered data from the stream
     await tx.execute('''
-          CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_id, event_uid);
-        ''');
+      CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_id, event_id);
+    ''');
   }),
 );
 
@@ -48,12 +48,12 @@ class DbSystem {
   late SqliteDatabase db;
   String? tempPath;
 
-  final IdGenerator _idGen;
+  final IdGenerator _idGenerator;
 
   late DbSequences dbSequences;
 
   DbSystem({String? path, required DeviceId deviceUid})
-    : _idGen = IdGenerator(deviceUid) {
+    : _idGenerator = IdGenerator(deviceUid) {
     if (path == null) {
       tempPath = tempDbPath();
       // Open temporary database
@@ -109,10 +109,10 @@ class DbSystem {
     }
   }
 
-  DeviceId get thisDeviceId => _idGen.deviceId;
+  DeviceId get thisDeviceId => _idGenerator.deviceId;
 
   Id newId() {
-    return _idGen.newUId();
+    return _idGenerator.newUId();
   }
 
   // should data really be string, or should it be actual event?
@@ -122,21 +122,21 @@ class DbSystem {
 
     final dataStr = jsonEncode(event.toMap());
     final streamIdStr = streamId.toString();
-    final eventUid = newId().toString();
-    final deviceUid = thisDeviceId.toString();
-    final deviceSeq = dbSequences.getDeviceSequence(deviceUid).next();
-    final streamSeq = dbSequences.nextStreamSequence(deviceUid, streamIdStr);
+    final eventId = newId().toString();
+    final deviceId = thisDeviceId.toString();
+    final deviceSeq = dbSequences.getDeviceSequence(deviceId).next();
+    final streamSeq = dbSequences.nextStreamSequence(deviceId, streamIdStr);
 
     await db.writeTransaction((tx) async {
       final res = await tx.execute(
         '''
           INSERT INTO sys_eventlog
-            (event_uid, device_uid, device_seq, stream_id, stream_seq, data)
+            (event_id, device_id, device_seq, stream_id, stream_seq, data)
           VALUES
             (?, ?, ?, ?, ?, ?)
           RETURNING *;
         ''',
-        [eventUid, deviceUid, deviceSeq, streamIdStr, streamSeq, dataStr],
+        [eventId, deviceId, deviceSeq, streamIdStr, streamSeq, dataStr],
       );
       // if sequences are properly defined, then a trascation could be used!
       print('appended event $res');

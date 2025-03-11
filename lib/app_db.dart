@@ -10,8 +10,8 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
   SqliteMigration(1, (tx) async {
     await tx.execute('''
       CREATE TABLE app_note (
-        note_uid VARCHAR(19) PRIMARY KEY NOT NULL,
-        note_data BLOB NOT NULL
+        id VARCHAR(19) PRIMARY KEY NOT NULL,
+        data BLOB NOT NULL
       );
     ''');
 
@@ -37,12 +37,14 @@ class AppDb {
     final note = Note(noteId: id);
 
     final res = await db.execute(
-      "INSERT INTO app_note (note_uid, note_data) VALUES (?, ?) RETURNING note_data;",
+      "INSERT INTO app_note (id, data) VALUES (?, ?) RETURNING data;",
       [id.toString(), jsonEncode(note.toMap())],
     );
     print('created note $res');
   }
 
+  // TODO: aquire note mutex for this operation, im trying to make this atomic
+  // i could do json type of manipulations, but they are confusing for now
   Future<void> noteContentUpdate(
     Id id, {
     String fullTitle = "",
@@ -65,7 +67,7 @@ class AppDb {
       throw ArgumentError('note $id does not exist');
     }
 
-    print('got note $note for modification $fullTitle $fullBody');
+    // print('got note $note for modification $fullTitle $fullBody');
 
     if (fullTitle.isNotEmpty) {
       note.title = fullTitle;
@@ -75,7 +77,7 @@ class AppDb {
     }
 
     final updateRes = await db.execute(
-      'UPDATE app_note SET note_data = ? WHERE note_uid = ? RETURNING *;',
+      'UPDATE app_note SET data = ? WHERE id = ? RETURNING *;',
       [jsonEncode(note.toMap()), id.toString()],
     );
 
@@ -84,7 +86,7 @@ class AppDb {
 
   Future<Note?> noteGet(Id id) async {
     final noteRes = await db.getOptional(
-      'SELECT note_data FROM app_note WHERE note_uid = ? LIMIT 1;',
+      'SELECT data FROM app_note WHERE id = ? LIMIT 1;',
       [id.toString()],
     );
 
@@ -92,12 +94,12 @@ class AppDb {
       return null;
     }
 
-    final note = Note.fromMap(jsonDecode(noteRes['note_data']));
+    final note = Note.fromMap(jsonDecode(noteRes['data']));
 
     return note;
   }
 
-  Future<void> noteContentResolve(Id id) async {
+  Future<void> noteConflictResolve(Id id) async {
     // the conflicts are actually stored on the note
     // its like a pointer, saying that this clashes with that in the UI view
     // then this event will correct the note conflict!
