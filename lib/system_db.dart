@@ -1,10 +1,8 @@
 import 'dart:convert';
 
-import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
-import 'package:notes_v0_2/stream_id.dart';
 import 'package:notes_v0_2/system_models.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
@@ -87,7 +85,7 @@ class DbSystem {
           [data],
         ],
       );
-      print('initialized dbserquences to $res');
+      // print('initialized dbserquences to $res');
     }
   }
 
@@ -100,7 +98,7 @@ class DbSystem {
         [data],
       ],
     );
-    print("updated sequences in db $res");
+    // print("updated sequences in db $res");
   }
 
   Future<void> deinit() async {

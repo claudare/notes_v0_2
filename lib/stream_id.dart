@@ -3,38 +3,35 @@
 // 32 bytes text
 import 'package:notes_v0_2/id.dart';
 
-class StreamIdGlobal extends StreamId {
-  StreamIdGlobal() : super("global", null);
+class StreamIdGlobal extends StreamIdWithoutId {
+  static const _name = "global";
 
-  static throwIfNotOfType(StreamId streamId) {
-    if (streamId is! StreamIdGlobal &&
-        !streamId.doesConformToType("global", false)) {
-      throw ArgumentError('${streamId.name} is not GlobalStreamId');
-    }
+  StreamIdGlobal() : super(_name);
+
+  static bool isGlobal(StreamId streamId) {
+    print("compare stream id is $streamId, compared to $_name");
+    return streamId.name == _name && !streamId.hasId;
   }
 }
 
-class StreamIdNote extends StreamId {
-  StreamIdNote(Id id) : super("note", id);
+class StreamIdNote extends StreamIdWithId {
+  static const _name = "note";
 
-  static throwIfNotOfType(StreamId streamId) {
-    // the check is skipped if it is actually a streamIdNote
-    // there is no way to create it otherwise, as name and id are final
-    if (streamId is! StreamIdNote &&
-        !streamId.doesConformToType("note", false)) {
-      throw ArgumentError('${streamId.name} is not NoteStreamId');
-    }
+  StreamIdNote(Id id) : super(_name, id);
+
+  static bool isNote(StreamId streamId) {
+    return streamId.name == _name && streamId.hasId;
   }
 }
 
-class StreamId {
+abstract class StreamId {
   // static const _size = 24;
   static const _maxNameSize = 12; // 12
 
   final String name;
-  final Id? id;
+  final Id? _id;
 
-  StreamId(this.name, this.id) {
+  StreamId(this.name, this._id) {
     // TODO: only ascci allowed!
     if (name.length > (_maxNameSize)) {
       throw ArgumentError('stream name cannot be longer then $_maxNameSize');
@@ -44,54 +41,67 @@ class StreamId {
   factory StreamId.fromString(String value) {
     final parts = value.split('-');
     if (parts.length == 1) {
-      return StreamId(parts[0], null);
+      return StreamIdWithoutId(parts[0]);
     } else if (parts.length == 4) {
       final name = parts[0];
-      // inefficient but it works
       final idStr = parts.sublist(1).join('-');
-      return StreamId(name, Id.fromString(idStr));
+      return StreamIdWithId(name, Id.fromString(idStr));
     } else {
       throw FormatException("Invalid ID format");
     }
   }
 
-  // is this really needed?
-  // fix it for nullable id
-  // Uint8List getBytes() {
-  //   final bytes = Uint8List(_size);
-  //   for (var i = 0; i < _maxNameSize; i++) {
-  //     bytes[i] = name.codeUnitAt(i);
-  //   }
-  //   for (var i = _maxNameSize; i < Uid._size; i++) {
-  //     bytes[i] = id.bytes[i - _maxNameSize];
-  //   }
-  //   return bytes;
-  // }
+  StreamIdWithId toStreamIdWithId() {
+    if (!hasId) {
+      throw ArgumentError('stream $name does not have an id');
+    }
+    return StreamIdWithId(name, _id!);
+  }
+
+  Id getIdOrThrow() {
+    if (!hasId) {
+      throw ArgumentError('stream $name does not have an id');
+    }
+    return _id!;
+  }
+
+  bool get hasId => _id != null;
+}
+
+class StreamIdWithId extends StreamId {
+  StreamIdWithId(super.name, super.id);
+
+  factory StreamIdWithId.fromString(String value) {
+    final parts = value.split('-');
+    if (parts.length != 4) {
+      throw FormatException("Invalid ID format");
+    }
+    final name = parts[0];
+    final idStr = parts.sublist(1).join('-');
+    return StreamIdWithId(name, Id.fromString(idStr));
+  }
+
+  Id get id => _id!;
 
   @override
   String toString() {
-    if (id != null) {
-      final idStr = id.toString();
-      // final paddedName = name.padRight(_maxNameSize, '_');
-      // return "$paddedName-$idStr";
-      return '$name-$idStr';
-    } else {
-      // do not pad on global streams?
-      return name;
+    return '$name-${id.toString()}';
+  }
+}
+
+class StreamIdWithoutId extends StreamId {
+  StreamIdWithoutId(String name) : super(name, null);
+
+  factory StreamIdWithoutId.fromString(String name) {
+    if (name.contains('-')) {
+      throw FormatException("Invalid ID format");
     }
+
+    return StreamIdWithoutId(name);
   }
 
-  bool doesConformToType(String withName, bool withId) {
-    final hasId = id != null;
-
-    if (withId && !hasId) {
-      return false;
-    } else if (!withId && hasId) {
-      return false;
-    } else if (withName != name) {
-      return false;
-    }
-
-    return true;
+  @override
+  String toString() {
+    return name;
   }
 }

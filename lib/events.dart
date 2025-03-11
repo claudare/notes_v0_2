@@ -20,7 +20,8 @@ sealed class Event {
 
   Map<String, dynamic> toMap() => {};
 
-  Future<void> apply(StreamId streamId, AppDb db) async => {};
+  // its inStreamId because this is the current stream that was written
+  Future<void> apply(StreamId inStreamId, AppDb db) async => {};
 
   // Static method to parse any event from a map
   static Event parseEvent(Map<String, dynamic> eventMap) {
@@ -35,31 +36,35 @@ sealed class Event {
 }
 
 class NewNoteStreamCreated extends Event {
-  StreamId streamIdNote;
+  StreamIdWithId streamId;
 
-  NewNoteStreamCreated({required this.streamIdNote}) {
-    StreamIdNote.throwIfNotOfType(streamIdNote);
+  NewNoteStreamCreated({required this.streamId}) {
+    if (!StreamIdNote.isNote(streamId)) {
+      throw ArgumentError("streamId is not note! got instead $streamId");
+    }
   }
 
   @override
-  Future<void> apply(StreamId streamId, AppDb db) async {
-    // this is really overkill, but for now more ways to fail allows to move faster
-    // as less tests are required.
-    StreamIdGlobal.throwIfNotOfType(streamId);
+  Future<void> apply(StreamId inStreamId, AppDb db) async {
+    // this does not work for some reason>?
+    // if (StreamIdGlobal.isGlobal(inStreamId)) {
+    //   throw ArgumentError("streamId is not global! got instead $inStreamId");
+    // }
 
-    throw UnimplementedError();
+    // create a new note, whos id is part of the stream
+    await db.noteCreate(streamId.id);
   }
 
   static const String _type = 'newNoteStreamCreated';
 
   @override
   NewNoteStreamCreated.fromMap(Map<String, dynamic> json)
-    : streamIdNote = StreamId.fromString(json['streamId']);
+    : streamId = StreamIdWithId.fromString(json['streamId']);
 
   @override
   Map<String, dynamic> toMap() => {
     '_type': _type,
-    'streamId': streamIdNote.toString(),
+    'streamId': streamId.toString(),
   };
 }
 
@@ -68,11 +73,7 @@ class NoteArchived extends Event {
   NoteArchived();
 
   @override
-  Future<void> apply(StreamId streamId, AppDb db) async {
-    if (streamId is! StreamIdNote) {
-      throw ArgumentError('Expected a NoteStreamId');
-    }
-
+  Future<void> apply(StreamId inStreamId, AppDb db) async {
     throw UnimplementedError();
   }
 
@@ -91,8 +92,10 @@ class NoteBodyEdited extends Event {
   NoteBodyEdited({required this.value});
 
   @override
-  Future<void> apply(StreamId streamId, AppDb db) async {
-    throw UnimplementedError();
+  Future<void> apply(StreamId inStreamId, AppDb db) async {
+    final id = inStreamId.getIdOrThrow();
+
+    await db.noteContentUpdate(id, fullBody: value);
   }
 
   static const String _type = 'noteBodyEdited';
@@ -113,7 +116,7 @@ class TagAssignedToNote extends Event {
   TagAssignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(StreamId streamId, AppDb db) async {
+  Future<void> apply(StreamId inStreamId, AppDb db) async {
     throw UnimplementedError();
   }
 

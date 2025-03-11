@@ -6,38 +6,48 @@ import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/system_models.dart';
 
 void main() async {
-  final dbSystem = DbSystem(deviceUid: DeviceId(0)); // device id 0 is 111
-  await dbSystem.init();
+  final systemDb = DbSystem(deviceUid: DeviceId(0)); // device id 0 is 111
+  await systemDb.init();
 
-  final dbApp = AppDb(dbSystem.db);
+  final appDb = AppDb(systemDb.db);
+
+  Future<void> appendLogAndApply(EventLogMinimal min) async {
+    print('doing event log min ${min.streamId}');
+    await systemDb.eventLogAppend(min);
+    await min.event.apply(min.streamId, appDb);
+  }
 
   try {
-    final noteId = dbSystem.newId();
+    await appDb.migrate();
 
+    final noteId = systemDb.newId();
+
+    final globalStreamId = StreamIdGlobal();
     final noteStreamId = StreamIdNote(noteId);
-    final globalStramId = StreamIdGlobal();
 
-    await dbSystem.eventLogAppend(
+    await appendLogAndApply(
       EventLogMinimal(
-        streamId: globalStramId,
-        event: NewNoteStreamCreated(streamIdNote: noteStreamId),
+        streamId: globalStreamId,
+        event: NewNoteStreamCreated(streamId: noteStreamId),
       ),
     );
-
-    await dbSystem.eventLogAppend(
+    await appendLogAndApply(
       EventLogMinimal(
         streamId: noteStreamId,
         event: NoteBodyEdited(value: "hello world"),
       ),
     );
+    // await systemDb.eventLogAppend(
+    //   EventLogMinimal(
+    //     streamId: noteStreamId,
+    //     event: NoteBodyEdited(value: "byebye"),
+    //   ),
+    // );
+    //
+    final note = await appDb.noteGet(noteId);
 
-    await dbSystem.eventLogAppend(
-      EventLogMinimal(
-        streamId: noteStreamId,
-        event: NoteBodyEdited(value: "byebye"),
-      ),
-    );
+    print("latest note state $note");
   } finally {
-    await dbSystem.deinit();
+    await systemDb.deinit();
   }
 }
