@@ -10,7 +10,7 @@ void main() async {
   final systemDb = SystemDb(deviceUid: DeviceId(0)); // device id 0 is 111
   await systemDb.init();
 
-  final appDb = AppDb(systemDb.db);
+  final appDb = AppDb(systemDb.db, loggingEnabled: true);
 
   try {
     await appDb.migrate();

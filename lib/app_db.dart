@@ -1,6 +1,5 @@
-// separate class for implementing application logic
-
 import 'dart:convert';
+// import 'dart:developer' as dev;
 
 import 'package:notes_v0_2/app_models.dart';
 import 'package:notes_v0_2/id.dart';
@@ -24,10 +23,22 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
   }),
 );
 
+// separate db  class for implementing application logic
+
 class AppDb {
   SqliteDatabase db;
 
-  AppDb(this.db);
+  bool loggingEnabled;
+
+  void log(String message) {
+    if (loggingEnabled) {
+      // developer logs only work when debugging.. ha
+      // dev.log(message, time: DateTime.now(), level: 100, name: "SystemDb");
+      print('[AppDb] $message');
+    }
+  }
+
+  AppDb(this.db, {this.loggingEnabled = false});
 
   Future<void> migrate() async {
     await _migrations.migrate(db);
@@ -40,7 +51,7 @@ class AppDb {
       "INSERT INTO app_note (id, data) VALUES (?, ?) RETURNING data;",
       [id.toString(), jsonEncode(note.toMap())],
     );
-    print('created note $res');
+    log('note created $res');
   }
 
   // TODO: aquire note mutex for this operation, im trying to make this atomic
@@ -59,15 +70,8 @@ class AppDb {
     var note = await noteGet(id);
 
     if (note == null) {
-      print("DB ERROR: note $id does not exist");
-
-      // for now we just throw, but in prod its strong error messaging instead
-      // its okay to have broken events, they should not prevent app operation
-      // maybe these are caught on higher level and operation is continued
       throw ArgumentError('note $id does not exist');
     }
-
-    // print('got note $note for modification $fullTitle $fullBody');
 
     if (fullTitle.isNotEmpty) {
       note.title = fullTitle;
@@ -77,11 +81,11 @@ class AppDb {
     }
 
     final updateRes = await db.execute(
-      'UPDATE app_note SET data = ? WHERE id = ? RETURNING *;',
+      'UPDATE app_note SET data = ? WHERE id = ? RETURNING data;',
       [jsonEncode(note.toMap()), id.toString()],
     );
 
-    print('note updated $updateRes');
+    log('note updated $updateRes');
   }
 
   Future<Note?> noteGet(Id id) async {
@@ -91,6 +95,7 @@ class AppDb {
     );
 
     if (noteRes == null) {
+      log('note $id not found');
       return null;
     }
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+// import 'dart:developer' as dev;
 
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
@@ -52,8 +53,20 @@ class SystemDb {
 
   late DbSequences dbSequences;
 
-  SystemDb({String? path, required DeviceId deviceUid})
-    : _idGenerator = IdGenerator(deviceUid) {
+  bool loggingEnabled;
+
+  void log(String message) {
+    if (loggingEnabled) {
+      // dev.log(message, name: "SystemDb");
+      print('[SystemDb] $message');
+    }
+  }
+
+  SystemDb({
+    String? path,
+    required DeviceId deviceUid,
+    this.loggingEnabled = false,
+  }) : _idGenerator = IdGenerator(deviceUid) {
     if (path == null) {
       tempPath = tempDbPath();
       // Open temporary database
@@ -85,7 +98,7 @@ class SystemDb {
           [data],
         ],
       );
-      // print('initialized dbserquences to $res');
+      log('initialized dbserquences to $res');
     }
   }
 
@@ -98,7 +111,7 @@ class SystemDb {
         [data],
       ],
     );
-    // print("updated sequences in db $res");
+    log("updated sequences in db $res");
   }
 
   Future<void> deinit() async {
@@ -139,7 +152,7 @@ class SystemDb {
         [eventId, deviceId, deviceSeq, streamIdStr, streamSeq, dataStr],
       );
       // if sequences are properly defined, then a trascation could be used!
-      print('appended event $res');
+      log('appended event $res');
     });
 
     // update persistent sequences. This is very ugly.

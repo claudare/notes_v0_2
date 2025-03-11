@@ -7,7 +7,14 @@ Future<void> appendEventLogMinimalAndApply(
   AppDb appDb,
   EventLogMinimal min,
 ) async {
-  print('doing event log min ${min.streamId}');
   await systemDb.eventLogAppend(min);
-  await min.event.apply(min.streamId, appDb);
+
+  try {
+    await min.event.apply(min.streamId, appDb);
+  } catch (err) {
+    print('failed to apply event $err');
+    // in prod, loud warning and traces are generated, but application must continue to operate
+    // for now though, we just rethrow
+    rethrow;
+  }
 }
