@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 class EventLog {
   String eventUid;
   String deviceUid;

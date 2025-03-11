@@ -1,16 +1,20 @@
+import 'dart:convert';
+
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
+import 'package:notes_v0_2/sequence.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 final migrations =
     SqliteMigrations()..add(
       SqliteMigration(1, (tx) async {
-        // this is required to know last sequence id of self
-        // and of the other devices for syncing purposes
+        // instead, nosql to store the latest sequence data in the db
+        // this is rebuilable by replaying all the events
+        // maybe doing a "proper" normal table system is beneficial for performance in this case
+        // execution of this can be async. as all the sequences are stored in memory
         await tx.execute('''
-          CREATE TABLE devicestat (
-            device_uid VARCHAR(3) PRIMARY KEY NOT NULL,
-            last_seq INTEGER NOT NULL
+          CREATE TABLE sys_dbsequences (
+            data BLOB NOT NULL
           );
         ''');
 
@@ -19,7 +23,7 @@ final migrations =
         // Heavy indexes are needed to quickly find streams
         // and be able to iterate a global view of the events
         await tx.execute('''
-          CREATE TABLE eventlog (
+          CREATE TABLE sys_eventlog (
             event_uid VARCHAR(19) NOT NULL PRIMARY KEY,
             device_uid VARCHAR(3) NOT NULL,
             device_seq INTEGER NOT NULL,
@@ -31,11 +35,11 @@ final migrations =
 
         // An index to query a stream for a particular device
         await tx.execute('''
-          CREATE INDEX idx_eventlog_device_stream ON eventlog (device_uid, stream_name, stream_seq);
+          CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_uid, stream_name, stream_seq);
         ''');
         // An index to query global ordered data from the stream
         await tx.execute('''
-          CREATE INDEX idx_eventlog_global_stream ON eventlog (stream_name, event_uid);
+          CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_name, event_uid);
         ''');
       }),
     );
@@ -45,7 +49,8 @@ class Db {
   String? tempPath;
 
   final UidGenerator _idGen;
-  late Sequence deviceSeq; // is late okay here?
+
+  late DbSequences dbSequences;
 
   Db({String? path, required DeviceUid deviceUid})
     : _idGen = UidGenerator(deviceUid) {
@@ -62,33 +67,29 @@ class Db {
 
   Future<void> init() async {
     await migrations.migrate(db);
-    final deviceUid = thisDeviceUid();
 
+    // go though the whole event log and find all the devices (ouch... keep thier sequences here)
     // register our device if needed
 
-    final existingRes = await db.execute(
-      "SELECT last_seq FROM devicestat WHERE device_uid = ? LIMIT 1;",
-      [
-        [deviceUid],
-      ],
-    );
+    final oneData = await db.getOptional("SELECT data from sys_dbsequences;");
 
-    if (existingRes.isNotEmpty) {
-      final lastSeq = existingRes[0]['last_seq'] as int;
-      deviceSeq = Sequence(lastSeq);
-      return;
+    if (oneData != null) {
+      dbSequences = DbSequences.fromMap(oneData['data']);
+    } else {
+      // create and store the first one
+      dbSequences = DbSequences();
+      // register outselves
+      dbSequences.addDevice(thisDeviceUid.toString(), 0);
+
+      final data = jsonEncode(dbSequences.toMap());
+      final res = await db.execute(
+        "INSERT INTO sys_dbsequences (data) VALUES (?) RETURNING *;",
+        [
+          [data],
+        ],
+      );
+      print('initialized dbserquences to $res');
     }
-
-    // returning is for debug only
-    final insertRes = await db.execute(
-      "INSERT INTO devicestat (device_uid, last_seq) VALUES (?, 0) RETURNING *;",
-      [
-        [deviceUid],
-      ],
-    );
-    print('initialized devicestat to $insertRes');
-    deviceSeq = Sequence(0);
-    return;
   }
 
   Future<void> deinit() async {
@@ -99,21 +100,36 @@ class Db {
     }
   }
 
-  String thisDeviceUid() {
-    return _idGen.deviceId.toString();
-  }
+  DeviceUid get thisDeviceUid => _idGen.deviceUid;
 
   Uid newUid() {
     return _idGen.newUId();
   }
 
   // device sequence also needs to be stored in the db, as a separate table
-  // Future<void> eventLogAppend() async {
-  //   // need to automatically generate the Id
-  //   final eventId = newUid();
+  Future<void> eventLogAppend({
+    required String streamName,
+    required String data,
+  }) async {
+    // need to automatically generate the Id
+    final eventUid = newUid().toString();
+    final deviceUid = thisDeviceUid.toString();
+    final deviceSeq = dbSequences.getDeviceSequence(deviceUid).next();
+    final streamSeq = dbSequences.nextStreamSequence(deviceUid, streamName);
 
-  //   await db.execute('''
-  //     INSERT INTO eventlog ()
-  //   ''', []);
-  // }
+    // also will need to update the index of the last stream ids and stuff
+
+    final res = await db.execute(
+      '''
+        INSERT INTO sys_eventlog
+          (event_uid, device_uid, device_seq, stream_name, stream_seq, data)
+        VALUES
+          (?, ?, ?, ?, ?, ?)
+        RETURNING *;
+      ''',
+      [eventUid, deviceUid, deviceSeq, streamName, streamSeq, data],
+    );
+
+    print('appended event $res');
+  }
 }

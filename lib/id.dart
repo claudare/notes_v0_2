@@ -1,22 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-class Sequence {
-  int value;
-
-  Sequence(this.value) {
-    // assert(value < 1, "sequences must start at 1");
-    if (value < 0) {
-      throw ArgumentError("sequences must be positive");
-    }
-  }
-
-  int next() {
-    value += 1;
-    return value;
-  }
-}
-
 /// I dont think this should be used
 @Deprecated("dont use")
 class StreamId {
@@ -210,11 +194,11 @@ class DeviceUid {
 }
 
 class UidGenerator {
-  final DeviceUid deviceId;
+  final DeviceUid deviceUid;
   int _counter = 0;
 
   /// Creates an IdGenerator with the specified device ID and optional counter start value
-  UidGenerator(this.deviceId, {int counter = 0}) : _counter = counter {
+  UidGenerator(this.deviceUid, {int counter = 0}) : _counter = counter {
     // If no counter provided, start with a random value to reduce collision potential
     if (counter == 0) {
       _counter = Random.secure().nextInt(_maxCounterValue);
@@ -229,7 +213,7 @@ class UidGenerator {
     // Get current timestamp in milliseconds
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final currentCount = _getAndIncrementCounter();
-    return Uid.fromParts(timestamp, deviceId.value, currentCount);
+    return Uid.fromParts(timestamp, deviceUid.value, currentCount);
   }
 
   /// Increment counter and store the new value
