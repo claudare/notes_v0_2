@@ -20,10 +20,10 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
   }),
 );
 
-class DbApp {
+class AppDb {
   SqliteDatabase db;
 
-  DbApp(this.db);
+  AppDb(this.db);
 
   Future<void> migrate() async {
     await _migrations.migrate(db);

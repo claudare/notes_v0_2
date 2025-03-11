@@ -1,25 +1,29 @@
-import 'package:notes_v0_2/db_app.dart';
-import 'package:notes_v0_2/db_system.dart';
+import 'package:notes_v0_2/app_db.dart';
+import 'package:notes_v0_2/stream_id.dart';
+import 'package:notes_v0_2/system_db.dart';
+import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 
 void main() async {
-  final dbSystem = DbSystem(deviceUid: DeviceUid(0)); // device id 0 is 111
+  final dbSystem = DbSystem(deviceUid: DeviceId(0)); // device id 0 is 111
   await dbSystem.init();
 
-  final dbApp = DbApp(dbSystem.db);
+  final dbApp = AppDb(dbSystem.db);
 
   try {
+    final noteId = dbSystem.newId();
+
     await dbSystem.eventLogAppend(
-      streamName: "test",
-      data: '{"hello": "world1"}',
+      streamId: StreamId.fromString("global"),
+      event: NewNoteStreamCreated(streamId: StreamId("note", noteId)),
     );
     await dbSystem.eventLogAppend(
-      streamName: "test",
-      data: '{"hello": "world2"}',
+      streamId: StreamId("note", noteId),
+      event: NoteBodyEdited(value: "hello world"),
     );
     await dbSystem.eventLogAppend(
-      streamName: "another",
-      data: '{"hello": "world3"}',
+      streamId: StreamId("note", noteId),
+      event: NoteBodyEdited(value: "byebye"),
     );
 
     await Future<void>.delayed(Duration(milliseconds: 1000));

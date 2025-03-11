@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
+import 'package:notes_v0_2/stream_id.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
@@ -26,7 +28,7 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
             event_uid VARCHAR(19) PRIMARY KEY NOT NULL,
             device_uid VARCHAR(3) NOT NULL,
             device_seq INTEGER NOT NULL,
-            stream_name TEXT NOT NULL,
+            stream_id TEXT NOT NULL,
             stream_seq INTEGER NOT NULL,
             data BLOB NOT NULL
           );
@@ -34,11 +36,11 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
 
     // An index to query a stream for a particular device
     await tx.execute('''
-          CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_uid, stream_name, stream_seq);
+          CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_uid, stream_id, stream_seq);
         ''');
     // An index to query global ordered data from the stream
     await tx.execute('''
-          CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_name, event_uid);
+          CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_id, event_uid);
         ''');
   }),
 );
@@ -47,15 +49,15 @@ class DbSystem {
   late SqliteDatabase db;
   String? tempPath;
 
-  final UidGenerator _idGen;
+  final IdGenerator _idGen;
 
   late DbSequences dbSequences;
 
-  DbSystem({String? path, required DeviceUid deviceUid})
-    : _idGen = UidGenerator(deviceUid) {
+  DbSystem({String? path, required DeviceId deviceUid})
+    : _idGen = IdGenerator(deviceUid) {
     if (path == null) {
       tempPath = tempDbPath();
-      // Open in-memory database
+      // Open temporary database
       db = SqliteDatabase(path: tempPath);
     } else {
       // Open database from a file
@@ -67,9 +69,6 @@ class DbSystem {
   Future<void> init() async {
     await _migrations.migrate(db);
 
-    // go though the whole event log and find all the devices (ouch... keep thier sequences here)
-    // register our device if needed
-
     final oneData = await db.getOptional("SELECT data from sys_dbsequences;");
 
     if (oneData != null) {
@@ -78,7 +77,7 @@ class DbSystem {
       // create and store the first one
       dbSequences = DbSequences();
       // register outselves
-      dbSequences.addDevice(thisDeviceUid.toString(), 0);
+      dbSequences.addDevice(thisDeviceId.toString(), 0);
 
       final data = jsonEncode(dbSequences.toMap());
       final res = await db.execute(
@@ -111,22 +110,25 @@ class DbSystem {
     }
   }
 
-  DeviceUid get thisDeviceUid => _idGen.deviceUid;
+  DeviceId get thisDeviceId => _idGen.deviceId;
 
-  Uid newUid() {
+  Id newId() {
     return _idGen.newUId();
   }
 
-  // device sequence also needs to be stored in the db, as a separate table
+  // should data really be string, or should it be actual event?
   Future<void> eventLogAppend({
-    required String streamName,
-    required String data,
+    required StreamId streamId,
+    required Event event,
   }) async {
+    final dataStr = jsonEncode(event.toMap());
+
+    final streamIdStr = streamId.toString();
     // need to automatically generate the Id
-    final eventUid = newUid().toString();
-    final deviceUid = thisDeviceUid.toString();
+    final eventUid = newId().toString();
+    final deviceUid = thisDeviceId.toString();
     final deviceSeq = dbSequences.getDeviceSequence(deviceUid).next();
-    final streamSeq = dbSequences.nextStreamSequence(deviceUid, streamName);
+    final streamSeq = dbSequences.nextStreamSequence(deviceUid, streamIdStr);
 
     // also will need to update the index of the last stream ids and stuff
 
@@ -134,12 +136,12 @@ class DbSystem {
       final res = await tx.execute(
         '''
           INSERT INTO sys_eventlog
-            (event_uid, device_uid, device_seq, stream_name, stream_seq, data)
+            (event_uid, device_uid, device_seq, stream_id, stream_seq, data)
           VALUES
             (?, ?, ?, ?, ?, ?)
           RETURNING *;
         ''',
-        [eventUid, deviceUid, deviceSeq, streamName, streamSeq, data],
+        [eventUid, deviceUid, deviceSeq, streamIdStr, streamSeq, dataStr],
       );
       // if sequences are properly defined, then a trascation could be used!
       print('appended event $res');

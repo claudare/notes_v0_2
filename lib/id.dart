@@ -1,54 +1,25 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-/// I dont think this should be used
-@Deprecated("dont use")
-class StreamId {
-  String name;
-  Uid id;
-
-  StreamId(this.name, this.id) {
-    // TODO: only ascci allowed!
-    if (name.length > 4) {
-      throw ArgumentError("stream name cannot be longer then 4");
-    }
-
-    // pad it to correct length
-    name.padRight(4, '_');
-  }
-
-  // is this really needed?
-  Uint8List getBytes() {
-    final bytes = Uint8List(16);
-    for (var i = 0; i < 4; i++) {
-      bytes[i] = name.codeUnitAt(i);
-    }
-    for (var i = 4; i < 16; i++) {
-      bytes[i] = id.bytes[i - 4];
-    }
-    return bytes;
-  }
-
-  @override
-  String toString() {
-    final idStr = id.toString();
-    return "$name-$idStr";
-  }
-}
+// anything named "Dd" is the unique id defined in this file
+// "seq" denotes an autogrowing sequence. 0 -> infinity
+// "aid" denotes autoincrementing ids not related to sequences
 
 /// id is globally unique lexicographically sortable id
 /// binary length is 12
 /// text length is 19
-class Uid implements Comparable<Uid> {
+class Id implements Comparable<Id> {
+  static const _size = 12;
+
   Uint8List bytes;
 
-  Uid(this.bytes) {
-    if (bytes.length != 12) {
+  Id(this.bytes) {
+    if (bytes.length != _size) {
       throw ArgumentError('ID must be exactly 12 bytes');
     }
   }
 
-  Uid.fromString(String id) : bytes = Uint8List(12) {
+  Id.fromString(String id) : bytes = Uint8List(_size) {
     final parts = id.split('-');
     if (parts.length != 3) {
       throw FormatException("Invalid ID format");
@@ -67,13 +38,22 @@ class Uid implements Comparable<Uid> {
   }
 
   /// Creates a new Id from individual timestamp, device ID, and counter values
-  Uid.fromParts(int timestamp, int deviceId, int counter)
-    : bytes = Uint8List(12) {
+  Id.fromParts(int timestamp, int deviceId, int counter)
+    : bytes = Uint8List(_size) {
     final view = ByteData.view(bytes.buffer);
     view.setUint64(0, timestamp); // 8 bytes for timestamp
     view.setUint16(8, deviceId); // 2 bytes for device ID
     view.setUint16(10, counter); // 2 bytes for counter
   }
+
+  // this function should never exist. proper device id must be passed
+  // Uid.random() : bytes = Uint8List(_size) {
+  //   final timestamp = DateTime.now().millisecondsSinceEpoch;
+  //   final deviceId = Random.secure().nextInt(_maxDeviceIdValue);
+  //   final counterId = Random.secure().nextInt(_maxCounterValue);
+
+  //   Uid.fromParts(timestamp, deviceId, counterId);
+  // }
 
   /// Returns the timestamp component as a DateTime object
   DateTime getTimestamp() {
@@ -83,10 +63,10 @@ class Uid implements Comparable<Uid> {
   }
 
   /// Returns the device ID component
-  DeviceUid getDeviceId() {
+  DeviceId getDeviceId() {
     final view = ByteData.view(bytes.buffer);
     final deviceIdNum = view.getUint16(8);
-    return DeviceUid(deviceIdNum);
+    return DeviceId(deviceIdNum);
   }
 
   /// Returns the counter component
@@ -113,9 +93,9 @@ class Uid implements Comparable<Uid> {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! Uid) return false;
+    if (other is! Id) return false;
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < _size; i++) {
       if (bytes[i] != other.bytes[i]) return false;
     }
     return true;
@@ -126,15 +106,15 @@ class Uid implements Comparable<Uid> {
   @override
   int get hashCode {
     int result = 17;
-    for (int i = 0; i < bytes.length; i++) {
+    for (int i = 0; i < _size; i++) {
       result = 37 * result + bytes[i];
     }
     return result;
   }
 
   @override
-  int compareTo(Uid other) {
-    for (int i = 0; i < 12; i++) {
+  int compareTo(Id other) {
+    for (int i = 0; i < _size; i++) {
       final self = bytes[i];
       final that = other.bytes[i];
       if (self > that) {
@@ -147,10 +127,10 @@ class Uid implements Comparable<Uid> {
   }
 }
 
-class DeviceUid {
+class DeviceId {
   final int value; // hmmm, its not bytes
 
-  DeviceUid(this.value) {
+  DeviceId(this.value) {
     if (value < 0 || value >= _maxDeviceIdValue) {
       throw ArgumentError(
         'Device ID must be between 0 and ${_maxDeviceIdValue - 1}',
@@ -159,14 +139,14 @@ class DeviceUid {
   }
 
   /// Creates a DeviceId from its Base58 string representation
-  DeviceUid.fromString(String valueStr) : value = _fromBase58(valueStr) {
+  DeviceId.fromString(String valueStr) : value = _fromBase58(valueStr) {
     if (value >= _maxDeviceIdValue) {
       throw FormatException('Device ID value exceeds maximum allowed value');
     }
   }
 
   /// Creates a DeviceId with a random value
-  DeviceUid.random() : value = Random.secure().nextInt(_maxDeviceIdValue);
+  DeviceId.random() : value = Random.secure().nextInt(_maxDeviceIdValue);
 
   /// Converts the DeviceUid to its Base58 string representation
   @override
@@ -176,7 +156,7 @@ class DeviceUid {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! DeviceUid) return false;
+    if (other is! DeviceId) return false;
     return value == other.value;
   }
 
@@ -185,12 +165,12 @@ class DeviceUid {
   int get hashCode => value.hashCode;
 }
 
-class UidGenerator {
-  final DeviceUid deviceUid;
+class IdGenerator {
+  final DeviceId deviceId;
   int _counter = 0;
 
   /// Creates an IdGenerator with the specified device ID and optional counter start value
-  UidGenerator(this.deviceUid, {int counter = 0}) : _counter = counter {
+  IdGenerator(this.deviceId, {int counter = 0}) : _counter = counter {
     // If no counter provided, start with a random value to reduce collision potential
     if (counter == 0) {
       _counter = Random.secure().nextInt(_maxCounterValue);
@@ -201,11 +181,10 @@ class UidGenerator {
     }
   }
 
-  Uid newUId() {
-    // Get current timestamp in milliseconds
+  Id newUId() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final currentCount = _getAndIncrementCounter();
-    return Uid.fromParts(timestamp, deviceUid.value, currentCount);
+    return Id.fromParts(timestamp, deviceId.value, currentCount);
   }
 
   /// Increment counter and store the new value
