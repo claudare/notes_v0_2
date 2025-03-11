@@ -39,14 +39,6 @@ class StreamId {
 /// id is globally unique lexicographically sortable id
 /// binary length is 12
 /// text length is 19
-/// i need to add a prefix. if 4 bytes then
-/// binary length is 16 and text length is 24 nice.
-/// but where does it go?
-/// 1) $ts-$dev-$pre-$count
-/// this is globally unique things in order, but then pre has very little meaning
-/// 2) $pre-$ts-$dev-$count
-/// this removes global uniqueness, but groups things by the stream name
-/// 4 characters is really short though, but $ts-$dev-$count is a unique value
 class Uid implements Comparable<Uid> {
   Uint8List bytes;
 

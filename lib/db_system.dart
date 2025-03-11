@@ -5,26 +5,25 @@ import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
-final migrations =
-    SqliteMigrations()..add(
-      SqliteMigration(1, (tx) async {
-        // instead, nosql to store the latest sequence data in the db
-        // this is rebuilable by replaying all the events
-        // maybe doing a "proper" normal table system is beneficial for performance in this case
-        // execution of this can be async. as all the sequences are stored in memory
-        await tx.execute('''
+final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
+  SqliteMigration(1, (tx) async {
+    // instead, nosql to store the latest sequence data in the db
+    // this is rebuilable by replaying all the events
+    // maybe doing a "proper" normal table system is beneficial for performance in this case
+    // execution of this can be async. as all the sequences are stored in memory
+    await tx.execute('''
           CREATE TABLE sys_dbsequences (
             data BLOB NOT NULL
           );
         ''');
 
-        // this is full raw data of the event
-        // it includes a lot, and is heavily indexed.
-        // Heavy indexes are needed to quickly find streams
-        // and be able to iterate a global view of the events
-        await tx.execute('''
+    // this is full raw data of the event
+    // it includes a lot, and is heavily indexed.
+    // Heavy indexes are needed to quickly find streams
+    // and be able to iterate a global view of the events
+    await tx.execute('''
           CREATE TABLE sys_eventlog (
-            event_uid VARCHAR(19) NOT NULL PRIMARY KEY,
+            event_uid VARCHAR(19) PRIMARY KEY NOT NULL,
             device_uid VARCHAR(3) NOT NULL,
             device_seq INTEGER NOT NULL,
             stream_name TEXT NOT NULL,
@@ -33,18 +32,18 @@ final migrations =
           );
         ''');
 
-        // An index to query a stream for a particular device
-        await tx.execute('''
+    // An index to query a stream for a particular device
+    await tx.execute('''
           CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_uid, stream_name, stream_seq);
         ''');
-        // An index to query global ordered data from the stream
-        await tx.execute('''
+    // An index to query global ordered data from the stream
+    await tx.execute('''
           CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_name, event_uid);
         ''');
-      }),
-    );
+  }),
+);
 
-class Db {
+class DbSystem {
   late SqliteDatabase db;
   String? tempPath;
 
@@ -52,7 +51,7 @@ class Db {
 
   late DbSequences dbSequences;
 
-  Db({String? path, required DeviceUid deviceUid})
+  DbSystem({String? path, required DeviceUid deviceUid})
     : _idGen = UidGenerator(deviceUid) {
     if (path == null) {
       tempPath = tempDbPath();
@@ -66,7 +65,7 @@ class Db {
   }
 
   Future<void> init() async {
-    await migrations.migrate(db);
+    await _migrations.migrate(db);
 
     // go though the whole event log and find all the devices (ouch... keep thier sequences here)
     // register our device if needed
@@ -147,6 +146,7 @@ class Db {
     });
 
     // do this without waiting? what can go wrong :D
+    // FIXME: implement proper denormalized tables for this and use transactions
     updateSequencesInDb();
   }
 }
