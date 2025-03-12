@@ -65,7 +65,7 @@ void main() async {
         appDb,
         EventLogMinimal(
           streamId: noteStreamId,
-          event: NoteBodyEdited(value: "hello world"),
+          event: NoteBodyEditedFull(value: "hello world"),
         ),
       );
 

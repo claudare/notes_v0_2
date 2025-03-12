@@ -40,5 +40,6 @@ class EventLog {
       deviceSeq = map['device_seq'],
       streamId = StreamId.fromString(map['stream_id']),
       streamSeq = map['stream_seq'],
-      event = Event.parseEvent(jsonDecode(map['data']));
+      event = Event.fromMap(jsonDecode(map['data']));
+  // event = Event.parseEvent(jsonDecode(map['data']));
 }

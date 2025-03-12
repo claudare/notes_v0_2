@@ -5,36 +5,30 @@ import 'package:notes_v0_2/stream_id.dart';
 // following https://dart.dev/language/class-modifiers#sealed
 
 sealed class Event {
-  static final Map<String, Event Function(Map<String, dynamic>)> _eventParsers =
-      {
-        NoteNewStreamCreated._type:
-            (json) => NoteNewStreamCreated.fromMap(json),
-        NoteBodyEdited._type: (json) => NoteBodyEdited.fromMap(json),
-        NoteArchived._type: (json) => NoteArchived.fromMap(json),
-        TagAssignedToNote._type: (json) => TagAssignedToNote.fromMap(json),
-        TagUnassignedToNote._type: (json) => TagUnassignedToNote.fromMap(json),
-      };
+  static final Map<String, Event Function(Map<String, dynamic>)> _parsers = {
+    NoteNewStreamCreated._type: NoteNewStreamCreated.fromMap,
+    NoteBodyEditedFull._type: NoteBodyEditedFull.fromMap,
+    NoteArchived._type: NoteArchived.fromMap,
+    TagAssignedToNote._type: TagAssignedToNote.fromMap,
+    TagUnassignedToNote._type: TagUnassignedToNote.fromMap,
+  };
 
   const Event();
 
-  // empty values which will be overriden
-  Event.fromMap(Map<String, dynamic> json);
+  factory Event.fromMap(Map<String, dynamic> map) {
+    final eventType = map['_type'];
 
-  Map<String, dynamic> toMap() => {};
-
-  // its inStreamId because this is the current stream that was written
-  Future<void> apply(StreamId inStreamId, AppDb db) async => {};
-
-  // Discriminated unions are done like so
-  static Event parseEvent(Map<String, dynamic> eventMap) {
-    final eventType = eventMap['_type'];
-
-    if (_eventParsers.containsKey(eventType)) {
-      return _eventParsers[eventType]!(eventMap);
+    if (_parsers.containsKey(eventType)) {
+      return _parsers[eventType]!(map);
     }
 
     throw ArgumentError('Unknown event type: $eventType');
   }
+
+  Map<String, dynamic> toMap();
+
+  /// inStreamId is current stream id that is being written to
+  Future<void> apply(StreamId inStreamId, AppDb db) async => {};
 }
 
 class NoteNewStreamCreated extends Event {
@@ -70,10 +64,10 @@ class NoteNewStreamCreated extends Event {
   };
 }
 
-class NoteBodyEdited extends Event {
+class NoteBodyEditedFull extends Event {
   String value;
 
-  NoteBodyEdited({required this.value});
+  NoteBodyEditedFull({required this.value});
 
   @override
   Future<void> apply(StreamId inStreamId, AppDb db) async {
@@ -82,10 +76,10 @@ class NoteBodyEdited extends Event {
     await db.noteContentUpdate(id, fullBody: value);
   }
 
-  static const String _type = 'noteBodyEdited';
+  static const String _type = 'noteBodyEditedFull';
 
   @override
-  NoteBodyEdited.fromMap(Map<String, dynamic> json) : value = json['value'];
+  NoteBodyEditedFull.fromMap(Map<String, dynamic> json) : value = json['value'];
 
   @override
   Map<String, dynamic> toMap() => {'_type': _type, 'value': value};
