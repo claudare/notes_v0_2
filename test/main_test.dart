@@ -74,6 +74,8 @@ void main() async {
 
       expect(note, isNotNull);
       expect(note!.body, equals("hello world"));
+      // TODO: fix the potentially flaky time tests
+      expect(note.editedAt.compareTo(note.createdAt), equals(1));
     });
   });
 }

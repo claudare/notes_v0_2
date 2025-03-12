@@ -1,5 +1,4 @@
 import 'dart:convert';
-// import 'dart:developer' as dev;
 
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
@@ -57,7 +56,6 @@ class SystemDb {
 
   void log(String message) {
     if (loggingEnabled) {
-      // dev.log(message, name: "SystemDb");
       print('[SystemDb] $message');
     }
   }

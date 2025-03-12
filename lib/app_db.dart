@@ -44,18 +44,18 @@ class AppDb {
     await _migrations.migrate(db);
   }
 
-  Future<void> noteCreate(Id id) async {
-    final note = Note(noteId: id);
+  Future<void> noteCreate(Id noteId) async {
+    final note = Note(noteId);
 
     final res = await db.execute(
       "INSERT INTO app_note (id, data) VALUES (?, ?) RETURNING data;",
-      [id.toString(), jsonEncode(note.toMap())],
+      [noteId.toString(), jsonEncode(note.toMap())],
     );
     log('note created $res');
   }
 
   // TODO: aquire note mutex for this operation, im trying to make this atomic
-  // i could do json type of manipulations, but they are confusing for now
+  // i could do json type of manipulations, but they are ctoo complex
   Future<void> noteContentUpdate(
     Id id, {
     String fullTitle = "",
@@ -79,6 +79,7 @@ class AppDb {
     if (fullBody.isNotEmpty) {
       note.body = fullBody;
     }
+    note.editedAt = DateTime.now(); // this is hardly testable
 
     final updateRes = await db.execute(
       'UPDATE app_note SET data = ? WHERE id = ? RETURNING data;',
