@@ -34,7 +34,7 @@ void main() async {
         appDb,
         EventLogMinimal(
           streamId: globalStreamId,
-          event: NewNoteStreamCreated(streamId: noteStreamId),
+          event: NoteNewStreamCreated(streamId: noteStreamId),
         ),
       );
 
@@ -55,7 +55,7 @@ void main() async {
         appDb,
         EventLogMinimal(
           streamId: globalStreamId,
-          event: NewNoteStreamCreated(streamId: noteStreamId),
+          event: NoteNewStreamCreated(streamId: noteStreamId),
         ),
       );
 

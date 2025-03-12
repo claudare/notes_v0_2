@@ -6,10 +6,10 @@ import 'package:notes_v0_2/stream_id.dart';
 sealed class Event {
   static final Map<String, Event Function(Map<String, dynamic>)> _eventParsers =
       {
-        NewNoteStreamCreated._type:
-            (json) => NewNoteStreamCreated.fromMap(json),
-        NoteArchived._type: (json) => NoteArchived.fromMap(json),
+        NoteNewStreamCreated._type:
+            (json) => NoteNewStreamCreated.fromMap(json),
         NoteBodyEdited._type: (json) => NoteBodyEdited.fromMap(json),
+        NoteArchived._type: (json) => NoteArchived.fromMap(json),
         TagAssignedToNote._type: (json) => TagAssignedToNote.fromMap(json),
       };
 
@@ -23,7 +23,7 @@ sealed class Event {
   // its inStreamId because this is the current stream that was written
   Future<void> apply(StreamId inStreamId, AppDb db) async => {};
 
-  // Static method to parse any event from a map
+  // Discriminated unions are done like so
   static Event parseEvent(Map<String, dynamic> eventMap) {
     final eventType = eventMap['_type'];
 
@@ -35,10 +35,10 @@ sealed class Event {
   }
 }
 
-class NewNoteStreamCreated extends Event {
+class NoteNewStreamCreated extends Event {
   StreamIdWithId streamId;
 
-  NewNoteStreamCreated({required this.streamId}) {
+  NoteNewStreamCreated({required this.streamId}) {
     if (!StreamIdNote.isNote(streamId)) {
       throw ArgumentError("streamId is not note! got instead $streamId");
     }
@@ -58,7 +58,7 @@ class NewNoteStreamCreated extends Event {
   static const String _type = 'newNoteStreamCreated';
 
   @override
-  NewNoteStreamCreated.fromMap(Map<String, dynamic> json)
+  NoteNewStreamCreated.fromMap(Map<String, dynamic> json)
     : streamId = StreamIdWithId.fromString(json['streamId']);
 
   @override

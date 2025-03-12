@@ -19,9 +19,6 @@ Id is specially crafted for this purpose.
 
 All events are stored inside a stream. All inside a stream.
 
-There is a deviceId (fixed string!), devSeqId (autoincrementing per device), streamId (text), streamSeqId (autoincrementing per insert) and data (blob).
-StreamId is only used for quering and optimizing lookups of sorts. This will enable for granular conflict resolution.
-
 Reorder events are simply in the stream with name reorder. All notes are implicitly created in desc order. All these events do, is emit NotesReordered(noteId, afterNoteId); edge case of end just uses an empty adterNoteId). Pin promotes to the top. Pins utilize the same reordered system!
 
 Each note has its own stream. NoteId is not stored inside these events, noteId is scoped from its stream name: 'note_$streamid'. Tags are also in this stream. Their global list is just a sideeffect.
