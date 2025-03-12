@@ -1,4 +1,5 @@
 import 'package:notes_v0_2/app_db.dart';
+import 'package:notes_v0_2/app_models.dart';
 import 'package:notes_v0_2/stream_id.dart';
 
 // following https://dart.dev/language/class-modifiers#sealed
@@ -11,6 +12,7 @@ sealed class Event {
         NoteBodyEdited._type: (json) => NoteBodyEdited.fromMap(json),
         NoteArchived._type: (json) => NoteArchived.fromMap(json),
         TagAssignedToNote._type: (json) => TagAssignedToNote.fromMap(json),
+        TagUnassignedToNote._type: (json) => TagUnassignedToNote.fromMap(json),
       };
 
   const Event();
@@ -120,13 +122,34 @@ class TagAssignedToNote extends Event {
   @override
   Future<void> apply(StreamId inStreamId, AppDb db) async {
     final noteId = inStreamId.getIdOrThrow();
-    await db.tagAddToNote(noteId, tagName);
+    await db.tagActionOnNote(noteId, tagName, TagAction.add);
   }
 
-  static const String _type = 'tagAssignToNote';
+  static const String _type = 'tagAssignedToNote';
 
   @override
   TagAssignedToNote.fromMap(Map<String, dynamic> json)
+    : tagName = json['tagName'];
+
+  @override
+  Map<String, dynamic> toMap() => {'_type': _type, 'tagName': tagName};
+}
+
+class TagUnassignedToNote extends Event {
+  String tagName;
+
+  TagUnassignedToNote({required this.tagName});
+
+  @override
+  Future<void> apply(StreamId inStreamId, AppDb db) async {
+    final noteId = inStreamId.getIdOrThrow();
+    await db.tagActionOnNote(noteId, tagName, TagAction.remove);
+  }
+
+  static const String _type = 'tagUnassignedToNote';
+
+  @override
+  TagUnassignedToNote.fromMap(Map<String, dynamic> json)
     : tagName = json['tagName'];
 
   @override

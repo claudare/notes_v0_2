@@ -127,18 +127,24 @@ class AppDb {
     // then this event will correct the note conflict!
   }
 
-  Future<void> tagAddToNote(Id noteId, String tag) async {
+  Future<void> tagActionOnNote(Id noteId, String tag, TagAction action) async {
+    // TODO: could implement in the same transaction, these global gets need a tx
     final note = await noteGet(noteId);
     if (note == null) {
       throw ArgumentError('note $noteId does not exist', 'noteId');
     }
     final tags = await tagsGet();
 
-    note.tags.add(tag);
-    tags.add(tag);
+    switch (action) {
+      case TagAction.add:
+        note.tags.add(tag);
+        tags.add(tag);
+      case TagAction.remove:
+        note.tags.remove(tag);
+        tags.remove(tag);
+    }
 
     // serialize both
-
     await db.writeTransaction((tx) async {
       _noteSave(tx, note);
       _tagsSave(tx, tags);

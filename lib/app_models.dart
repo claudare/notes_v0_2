@@ -41,6 +41,8 @@ class Note {
   }
 }
 
+enum TagAction { add, remove }
+
 class Tags {
   final Map<String, int> _tagCounts;
 
