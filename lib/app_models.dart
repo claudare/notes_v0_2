@@ -40,3 +40,45 @@ class Note {
     return 'Note[id: $noteId, title: $title, body: $body, tags: $tagStr, createdAt: $createdAt, editedAt: $editedAt]';
   }
 }
+
+class Tags {
+  final Map<String, int> _tagCounts;
+
+  Tags(this._tagCounts);
+  Tags.empty() : _tagCounts = {};
+
+  void add(String tag) {
+    if (_tagCounts.containsKey(tag)) {
+      _tagCounts[tag] = _tagCounts[tag]! + 1;
+    } else {
+      _tagCounts[tag] = 1;
+    }
+  }
+
+  void remove(String tag) {
+    if (_tagCounts.containsKey(tag)) {
+      _tagCounts[tag] = _tagCounts[tag]! - 1;
+      if (_tagCounts[tag] == 0) {
+        _tagCounts.remove(tag);
+      }
+    }
+  }
+
+  List<String> toList() {
+    return _tagCounts.keys.toList();
+  }
+
+  Map<String, dynamic> toMap() => _tagCounts;
+
+  factory Tags.fromMap(Map<String, dynamic> map) {
+    return Tags(Map<String, int>.from(map));
+  }
+  // or could do this:
+  // factory Tags.fromMap(Map<String, dynamic> map) => Tags(Map<String, int>.from(map));
+
+  @override
+  String toString() {
+    final tagsStr = toList().join(", ");
+    return 'TagMap[$tagsStr]';
+  }
+}

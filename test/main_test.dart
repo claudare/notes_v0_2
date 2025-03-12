@@ -77,5 +77,42 @@ void main() async {
       // TODO: fix the potentially flaky time tests
       expect(note.editedAt.compareTo(note.createdAt), equals(1));
     });
+
+    test('Assign a tag to a note', () async {
+      final noteId = systemDb.newId();
+
+      final globalStreamId = StreamIdGlobal();
+      final noteStreamId = StreamIdNote(noteId);
+
+      // First create the note stream
+      await appendEventLogMinimalAndApply(
+        systemDb,
+        appDb,
+        EventLogMinimal(
+          streamId: globalStreamId,
+          event: NoteNewStreamCreated(streamId: noteStreamId),
+        ),
+      );
+
+      // Assign a tag to the note
+      const tagName = 'testTag';
+      await appendEventLogMinimalAndApply(
+        systemDb,
+        appDb,
+        EventLogMinimal(
+          streamId: noteStreamId,
+          event: TagAssignedToNote(tagName: tagName),
+        ),
+      );
+
+      // Verify that the tag has been assigned to the note
+      final note = await appDb.noteGet(noteId);
+      expect(note, isNotNull);
+      expect(note!.tags.contains(tagName), isTrue);
+
+      // Verify that the tag exists in the general list
+      final tags = await appDb.tagsGet();
+      expect(tags.toList().contains(tagName), isTrue);
+    });
   });
 }

@@ -90,6 +90,8 @@ class NoteBodyEdited extends Event {
 }
 
 // soft delete only for now
+// this "reorders" this event into the "archived" list
+// there are 3 ordering lists: main, archived, pinned
 class NoteArchived extends Event {
   NoteArchived();
 
@@ -117,7 +119,8 @@ class TagAssignedToNote extends Event {
 
   @override
   Future<void> apply(StreamId inStreamId, AppDb db) async {
-    throw UnimplementedError();
+    final noteId = inStreamId.getIdOrThrow();
+    await db.tagAddToNote(noteId, tagName);
   }
 
   static const String _type = 'tagAssignToNote';

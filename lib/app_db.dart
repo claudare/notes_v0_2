@@ -20,6 +20,13 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
         data BLOB NOT NULL
       );
     ''');
+
+    await tx.execute(
+      '''
+      INSERT INTO app_tags (data) VALUES(?);
+    ''',
+      [jsonEncode({})],
+    );
   }),
 );
 
@@ -81,12 +88,14 @@ class AppDb {
     }
     note.editedAt = DateTime.now(); // this is hardly testable
 
-    final updateRes = await db.execute(
-      'UPDATE app_note SET data = ? WHERE id = ? RETURNING data;',
-      [jsonEncode(note.toMap()), id.toString()],
-    );
+    // final updateRes = await db.execute(
+    //   'UPDATE app_note SET data = ? WHERE id = ? RETURNING data;',
+    //   [jsonEncode(note.toMap()), id.toString()],
+    // );
 
-    log('note updated $updateRes');
+    _noteSave(db, note);
+
+    log('note updated $note');
   }
 
   Future<Note?> noteGet(Id id) async {
@@ -105,9 +114,50 @@ class AppDb {
     return note;
   }
 
+  static Future<void> _noteSave(SqliteWriteContext tx, Note note) async {
+    await tx.execute('UPDATE app_note SET data = ? WHERE id = ?;', [
+      jsonEncode(note.toMap()),
+      note.noteId.toString(),
+    ]);
+  }
+
   Future<void> noteConflictResolve(Id id) async {
     // the conflicts are actually stored on the note
     // its like a pointer, saying that this clashes with that in the UI view
     // then this event will correct the note conflict!
+  }
+
+  Future<void> tagAddToNote(Id noteId, String tag) async {
+    final note = await noteGet(noteId);
+    if (note == null) {
+      throw ArgumentError('note $noteId does not exist', 'noteId');
+    }
+    final tags = await tagsGet();
+
+    note.tags.add(tag);
+    tags.add(tag);
+
+    // serialize both
+
+    await db.writeTransaction((tx) async {
+      _noteSave(tx, note);
+      _tagsSave(tx, tags);
+    });
+  }
+
+  Future<Tags> tagsGet() async {
+    final tagsRes = await db.getOptional("SELECT data FROM app_tags LIMIT 1;");
+
+    if (tagsRes == null) {
+      throw Exception('tags were not initialized');
+    }
+
+    return Tags.fromMap(jsonDecode(tagsRes['data']));
+  }
+
+  static Future<void> _tagsSave(SqliteWriteContext tx, Tags tags) async {
+    await tx.execute('UPDATE app_tags SET data = ?;', [
+      jsonEncode(tags.toMap()),
+    ]);
   }
 }
