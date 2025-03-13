@@ -1,7 +1,7 @@
 import 'package:notes_v0_2/app_db.dart';
 import 'package:notes_v0_2/app_models.dart';
 import 'package:notes_v0_2/stream_name.dart';
-
+import 'package:notes_v0_2/id.dart';
 // following https://dart.dev/language/class-modifiers#sealed
 
 sealed class Event {
@@ -32,7 +32,7 @@ sealed class Event {
 }
 
 final class NoteNewStreamCreated extends Event {
-  final StreamNameWithId streamId;
+  final Id streamId;
 
   const NoteNewStreamCreated({required this.streamId});
   // : assert(StreamNote.isValid(streamId)),
@@ -45,20 +45,17 @@ final class NoteNewStreamCreated extends Event {
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
-    assert(
-      StreamGlobal.isValid(inStreamId),
-      "streamId is not global! got instead $inStreamId",
-    );
+    inStreamId.throwIfNotGlobalWithName("global");
 
     // create a new note, whos id is part of the stream
-    await db.noteCreate(streamId.id);
+    await db.noteCreate(streamId);
   }
 
   static const String _type = 'newNoteStreamCreated';
 
   @override
   NoteNewStreamCreated.fromMap(Map<String, dynamic> json)
-    : streamId = StreamNameWithId.fromString(json['streamId']);
+    : streamId = Id.fromString(json['streamId']);
 
   @override
   Map<String, dynamic> toMap() => {
@@ -74,9 +71,9 @@ class NoteBodyEditedFull extends Event {
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
-    final id = inStreamId.getIdOrThrow();
+    final noteId = inStreamId.getIdInScopeOrThrow("note");
 
-    await db.noteContentUpdate(id, fullBody: value);
+    await db.noteContentUpdate(noteId, fullBody: value);
   }
 
   static const String _type = 'noteBodyEditedFull';
@@ -118,7 +115,7 @@ class TagAssignedToNote extends Event {
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
-    final noteId = inStreamId.getIdOrThrow();
+    final noteId = inStreamId.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.add);
   }
 
@@ -139,7 +136,7 @@ class TagUnassignedToNote extends Event {
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
-    final noteId = inStreamId.getIdOrThrow();
+    final noteId = inStreamId.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.remove);
   }
 

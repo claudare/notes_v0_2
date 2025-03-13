@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
+import 'package:notes_v0_2/stream_name.dart';
 import 'package:notes_v0_2/system_models.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
@@ -157,4 +159,12 @@ class SystemDb {
     // FIXME: implement proper denormalized tables for this and use transactions
     await updateSequencesInDb();
   }
+
+  // returns all the events for a given stream
+  // if sequenceId is provided it will return up-to that point
+  // otherwise all events are returned
+  // Future<List<Event>> eventLogGetEventsForStream(
+  //   StreamName streamName, {
+  //   int sequenceId = -1,
+  // }) {}
 }
