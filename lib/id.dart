@@ -16,6 +16,7 @@ class Id implements Comparable<Id> {
   static const _binLenScope = 4;
   static const _binLenTimestamp = 8;
   static const _binLenDevice = 2;
+  // ignore: unused_field
   static const _binLenCounter = 2;
 
   // timestamp is valid until 292,277,026,596 AD, at 20:10:55 UTC

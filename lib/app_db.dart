@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:notes_v0_2/app_models.dart';
 import 'package:notes_v0_2/id.dart';
+import 'package:notes_v0_2/system_db.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
@@ -113,6 +114,17 @@ class AppDb {
 
     return note;
   }
+
+  // this will recreate the state of the note at a given sequence id
+  // it needs to replay it, but for that it needed systemDb
+  // find a better way to do this
+  // Future<Note?> noteGetTimetravel(
+  //   SystemDb systemDb,
+  //   Id id,
+  //   int sequenceId,
+  // ) async {
+  //   // TODO
+  // }
 
   static Future<void> _noteSave(SqliteWriteContext tx, Note note) async {
     await tx.execute('UPDATE app_note SET data = ? WHERE id = ?;', [
