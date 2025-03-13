@@ -8,8 +8,7 @@ class StreamIdGlobal extends StreamId {
 
   StreamIdGlobal() : super(_name, null);
 
-  static bool isGlobal(StreamId streamId) {
-    print("compare stream id is $streamId, compared to $_name");
+  static bool isValid(StreamId streamId) {
     return streamId.name == _name && !streamId.hasId;
   }
 }
@@ -19,7 +18,7 @@ class StreamIdNote extends StreamIdWithId {
 
   StreamIdNote(Id id) : super(_name, id);
 
-  static bool isNote(StreamId streamId) {
+  static bool isValid(StreamId streamId) {
     return streamId.name == _name && streamId.hasId;
   }
 }
@@ -31,12 +30,11 @@ class StreamId {
   final String name;
   final Id? _id;
 
-  StreamId(this.name, this._id) {
-    // TODO: only ascci allowed!
-    if (name.length > (_maxNameSize)) {
-      throw ArgumentError('stream name cannot be longer then $_maxNameSize');
-    }
-  }
+  const StreamId(this.name, this._id);
+  // : assert(
+  //     name.length > _maxNameSize,
+  //     'stream name cannot be longer then $_maxNameSize. given ${name}',
+  //   );
 
   factory StreamId.fromString(String value) {
     final parts = value.split('-');
@@ -50,6 +48,8 @@ class StreamId {
       throw FormatException("Invalid ID format");
     }
   }
+
+  bool get hasId => _id != null;
 
   StreamIdWithId toStreamIdWithId() {
     if (!hasId) {
@@ -65,11 +65,20 @@ class StreamId {
     return _id!;
   }
 
-  bool get hasId => _id != null;
+  bool doesConformTo(String withName, bool withId) {
+    if (name != withName) return false;
+    if (withId && _id == null) return false;
+    if (!withId && _id != null) return false;
+    return true;
+  }
+
+  // hardcoded stream examples for this app
+  // bool get isNote => name == 'note' && _id != null;
+  // bool get isGlobal => name == 'global' && _id == null;
 }
 
 class StreamIdWithId extends StreamId {
-  StreamIdWithId(super.name, super.id);
+  const StreamIdWithId(super.name, super.id);
 
   factory StreamIdWithId.fromString(String value) {
     final parts = value.split('-');

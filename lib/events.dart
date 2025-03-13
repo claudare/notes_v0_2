@@ -32,20 +32,19 @@ sealed class Event {
 }
 
 class NoteNewStreamCreated extends Event {
-  StreamIdWithId streamId;
+  final StreamIdWithId streamId;
 
   NoteNewStreamCreated({required this.streamId}) {
-    if (!StreamIdNote.isNote(streamId)) {
+    if (!StreamIdNote.isValid(streamId)) {
       throw ArgumentError("streamId is not note! got instead $streamId");
     }
   }
 
   @override
   Future<void> apply(StreamId inStreamId, AppDb db) async {
-    // this does not work for some reason>?
-    // if (StreamIdGlobal.isGlobal(inStreamId)) {
-    //   throw ArgumentError("streamId is not global! got instead $inStreamId");
-    // }
+    if (!StreamIdGlobal.isValid(inStreamId)) {
+      throw ArgumentError("streamId is not global! got instead $inStreamId");
+    }
 
     // create a new note, whos id is part of the stream
     await db.noteCreate(streamId.id);
