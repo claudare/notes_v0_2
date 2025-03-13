@@ -27,7 +27,7 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
         event_id VARCHAR(24) PRIMARY KEY NOT NULL,
         device_id VARCHAR(3) NOT NULL,
         device_seq INTEGER NOT NULL,
-        stream_id TEXT NOT NULL,
+        stream_name TEXT NOT NULL,
         stream_seq INTEGER NOT NULL,
         data BLOB NOT NULL
       );
@@ -35,11 +35,11 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
 
     // An index to query a stream for a particular device
     await tx.execute('''
-      CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_id, stream_id, stream_seq);
+      CREATE INDEX sys_idx_eventlog_device_stream ON sys_eventlog (device_id, stream_name, stream_seq);
     ''');
     // An index to query global ordered data from the stream
     await tx.execute('''
-      CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_id, event_id);
+      CREATE INDEX sys_idx_eventlog_global_stream ON sys_eventlog (stream_name, event_id);
     ''');
   }),
 );
@@ -62,9 +62,9 @@ class SystemDb {
 
   SystemDb({
     String? path,
-    required DeviceId deviceUid,
+    required DeviceId deviceId,
     this.loggingEnabled = false,
-  }) : _idGenerator = IdGenerator(deviceUid) {
+  }) : _idGenerator = IdGenerator(deviceId) {
     if (path == null) {
       tempPath = tempDbPath();
       // Open temporary database
@@ -129,25 +129,25 @@ class SystemDb {
   // should data really be string, or should it be actual event?
   Future<void> eventLogAppend(EventLogMinimal eventLogMinimal) async {
     final event = eventLogMinimal.event;
-    final streamId = eventLogMinimal.streamId;
+    final stream = eventLogMinimal.stream;
 
     final dataStr = jsonEncode(event.toMap());
-    final streamIdStr = streamId.toString();
+    final streamName = stream.name;
     final eventId = newId("ev").toString();
     final deviceId = thisDeviceId.toString();
     final deviceSeq = dbSequences.getDeviceSequence(deviceId).next();
-    final streamSeq = dbSequences.nextStreamSequence(deviceId, streamIdStr);
+    final streamSeq = dbSequences.nextStreamSequence(deviceId, streamName);
 
     await db.writeTransaction((tx) async {
       final res = await tx.execute(
         '''
           INSERT INTO sys_eventlog
-            (event_id, device_id, device_seq, stream_id, stream_seq, data)
+            (event_id, device_id, device_seq, stream_name, stream_seq, data)
           VALUES
             (?, ?, ?, ?, ?, ?)
           RETURNING *;
         ''',
-        [eventId, deviceId, deviceSeq, streamIdStr, streamSeq, dataStr],
+        [eventId, deviceId, deviceSeq, streamName, streamSeq, dataStr],
       );
       // if sequences are properly defined, then a trascation could be used!
       log('appended event $res');

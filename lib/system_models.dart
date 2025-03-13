@@ -5,10 +5,10 @@ import 'package:notes_v0_2/stream.dart';
 
 /// minimal information needed for resolving of the event
 class EventLogMinimal {
-  Stream streamId;
+  Stream stream;
   Event event;
 
-  EventLogMinimal({required this.streamId, required this.event});
+  EventLogMinimal({required this.stream, required this.event});
 
   // this should not be here
   // pipeThrough(DbApp db) {
@@ -20,7 +20,7 @@ class EventLog {
   String eventUid;
   String deviceUid;
   int deviceSeq;
-  Stream streamId;
+  Stream streamName;
   int streamSeq;
   Event event; // could use Uint8List here?
 
@@ -28,16 +28,16 @@ class EventLog {
     required this.eventUid,
     required this.deviceUid,
     required this.deviceSeq,
-    required this.streamId,
+    required this.streamName,
     required this.streamSeq,
     required this.event,
   });
 
   EventLog.fromRow(Map<String, dynamic> map)
-    : eventUid = map['event_uid'],
-      deviceUid = map['device_uid'],
+    : eventUid = map['event_id'],
+      deviceUid = map['device_id'],
       deviceSeq = map['device_seq'],
-      streamId = Stream.fromString(map['stream_id']),
+      streamName = Stream.fromString(map['stream_name']),
       streamSeq = map['stream_seq'],
       event = Event.fromMap(jsonDecode(map['data']));
   // event = Event.parseEvent(jsonDecode(map['data']));

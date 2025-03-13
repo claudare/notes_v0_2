@@ -27,8 +27,8 @@ sealed class Event {
 
   Map<String, dynamic> toMap();
 
-  /// inStreamId is current stream id that is being written to
-  Future<void> apply(Stream inStreamId, AppDb db) async => {};
+  /// inStream is current stream id that is being written to
+  Future<void> apply(Stream inStream, AppDb db) async => {};
 }
 
 final class NoteNewStreamCreated extends Event {
@@ -44,8 +44,8 @@ final class NoteNewStreamCreated extends Event {
   // }
 
   @override
-  Future<void> apply(Stream inStreamId, AppDb db) async {
-    inStreamId.throwIfNotGlobalWithName("global");
+  Future<void> apply(Stream inStream, AppDb db) async {
+    inStream.throwIfNotNamedWithName("global");
 
     // create a new note, whos id is part of the stream
     await db.noteCreate(streamId);
@@ -70,8 +70,8 @@ class NoteBodyEditedFull extends Event {
   const NoteBodyEditedFull({required this.value});
 
   @override
-  Future<void> apply(Stream inStreamId, AppDb db) async {
-    final noteId = inStreamId.getIdInScopeOrThrow("note");
+  Future<void> apply(Stream inStream, AppDb db) async {
+    final noteId = inStream.getIdInScopeOrThrow("note");
 
     await db.noteContentUpdate(noteId, fullBody: value);
   }
@@ -92,7 +92,7 @@ class NoteArchived extends Event {
   const NoteArchived();
 
   @override
-  Future<void> apply(Stream inStreamId, AppDb db) async {
+  Future<void> apply(Stream inStream, AppDb db) async {
     throw UnimplementedError();
   }
 
@@ -114,8 +114,8 @@ class TagAssignedToNote extends Event {
   TagAssignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(Stream inStreamId, AppDb db) async {
-    final noteId = inStreamId.getIdInScopeOrThrow("note");
+  Future<void> apply(Stream inStream, AppDb db) async {
+    final noteId = inStream.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.add);
   }
 
@@ -135,8 +135,8 @@ class TagUnassignedToNote extends Event {
   TagUnassignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(Stream inStreamId, AppDb db) async {
-    final noteId = inStreamId.getIdInScopeOrThrow("note");
+  Future<void> apply(Stream inStream, AppDb db) async {
+    final noteId = inStream.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.remove);
   }
 

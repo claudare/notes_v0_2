@@ -13,7 +13,7 @@ void main() async {
     late AppDb appDb;
 
     setUp(() async {
-      systemDb = SystemDb(deviceUid: DeviceId(0)); // device id 0 is 111
+      systemDb = SystemDb(deviceId: DeviceId(0)); // device id 0 is 111
       await systemDb.init();
       appDb = AppDb(systemDb.db);
       await appDb.migrate();
@@ -33,7 +33,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: globalStreamId,
+          stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
         ),
       );
@@ -54,7 +54,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: globalStreamId,
+          stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
         ),
       );
@@ -64,7 +64,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: noteStreamId,
+          stream: noteStreamId,
           event: NoteBodyEditedFull(value: "hello world"),
         ),
       );
@@ -89,7 +89,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: globalStreamId,
+          stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
         ),
       );
@@ -100,7 +100,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: noteStreamId,
+          stream: noteStreamId,
           event: TagAssignedToNote(tagName: tagName),
         ),
       );
@@ -128,7 +128,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: globalStreamId,
+          stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
         ),
       );
@@ -139,7 +139,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: noteStreamId,
+          stream: noteStreamId,
           event: TagAssignedToNote(tagName: tagName),
         ),
       );
@@ -149,7 +149,7 @@ void main() async {
         systemDb,
         appDb,
         EventLogMinimal(
-          streamId: noteStreamId,
+          stream: noteStreamId,
           event: TagUnassignedToNote(tagName: tagName),
         ),
       );

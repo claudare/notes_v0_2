@@ -8,7 +8,7 @@ import 'package:notes_v0_2/utils.dart';
 
 // run with dart --enable-asserts bin/main.dart
 void main() async {
-  final systemDb = SystemDb(deviceUid: DeviceId(0)); // device id 0 is 111
+  final systemDb = SystemDb(deviceId: DeviceId(0)); // device id 0 is 111
   await systemDb.init();
 
   final appDb = AppDb(systemDb.db, loggingEnabled: true);
@@ -25,7 +25,7 @@ void main() async {
       systemDb,
       appDb,
       EventLogMinimal(
-        streamId: globalStreamId,
+        stream: globalStreamId,
         event: NoteNewStreamCreated(streamId: noteId),
       ),
     );
@@ -33,7 +33,7 @@ void main() async {
       systemDb,
       appDb,
       EventLogMinimal(
-        streamId: noteStreamId,
+        stream: noteStreamId,
         event: NoteBodyEditedFull(value: "hello world"),
       ),
     );

@@ -31,7 +31,6 @@ class Stream {
 
   static const _maxNameLength = 16;
 
-  /// Creates a stream name without an ID
   const Stream.named(String name)
     : assert(
         name.length <= _maxNameLength,
@@ -42,7 +41,6 @@ class Stream {
 
   const Stream.id(Id id) : _name = null, _id = id;
 
-  /// Parses a stream name from its string representation
   factory Stream.fromString(String value) {
     if (!value.contains('-')) {
       return Stream.named(value);
@@ -52,19 +50,25 @@ class Stream {
     return Stream.id(id);
   }
 
-  bool get isId => _id != null;
-  bool get isGlobal => _name != null;
+  String get name {
+    if (_id != null) {
+      return _id.toString();
+    }
+    return _name!;
+  }
 
   Id? get id {
     return _id;
   }
 
-  bool isGlobalWithName(String name) {
+  bool get isNamed => _name != null;
+
+  bool isNamedWithName(String name) {
     if (_name != null) return _name == name;
     return false;
   }
 
-  void throwIfNotGlobalWithName(String name) {
+  void throwIfNotNamedWithName(String name) {
     if (_name == null) {
       throw ArgumentError('stream $_id is not global $name');
     }
@@ -72,6 +76,8 @@ class Stream {
       throw ArgumentError('stream $_name does not have name $name');
     }
   }
+
+  bool get isId => _id != null;
 
   Id? getIdInScope(String scope) {
     if (_id != null && _id.getScope() == scope) {
@@ -91,12 +97,7 @@ class Stream {
   }
 
   @override
-  String toString() {
-    if (isId) {
-      return _id!.toString();
-    }
-    return _name!;
-  }
+  String toString() => name;
 
   @override
   bool operator ==(Object other) {
