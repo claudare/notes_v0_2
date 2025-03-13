@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
+import 'package:notes_v0_2/stream.dart';
 import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
 import 'package:notes_v0_2/system_models.dart';
@@ -161,8 +163,19 @@ class SystemDb {
   // returns all the events for a given stream
   // if sequenceId is provided it will return up-to that point
   // otherwise all events are returned
-  // Future<List<Event>> eventLogGetEventsForStream(
-  //   StreamName streamName, {
-  //   int sequenceId = -1,
-  // }) {}
+  Future<List<EventLog>> eventLogGetAllForStream(Stream stream) async {
+    final streamName = stream.name;
+    List<Map<String, dynamic>> results;
+
+    // Fetch all events for the given stream
+    results = await db.getAll(
+      '''
+        SELECT * FROM sys_eventlog WHERE stream_name = ?
+        ORDER BY event_id;
+      ''',
+      [streamName],
+    );
+
+    return results.map(EventLog.fromRow).toList();
+  }
 }

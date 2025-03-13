@@ -11,6 +11,7 @@ sealed class Event {
     NoteArchived._type: NoteArchived.fromMap,
     TagAssignedToNote._type: TagAssignedToNote.fromMap,
     TagUnassignedToNote._type: TagUnassignedToNote.fromMap,
+    TestEvent._type: TestEvent.fromMap,
   };
 
   const Event();
@@ -148,4 +149,23 @@ class TagUnassignedToNote extends Event {
 
   @override
   Map<String, dynamic> toMap() => {'_type': _type, 'tagName': tagName};
+}
+
+class TestEvent extends Event {
+  final String value;
+
+  TestEvent({required this.value});
+
+  @override
+  Future<void> apply(Stream inStream, AppDb db) async {
+    throw Exception("cannot apply test event");
+  }
+
+  static const String _type = 'TEST_EVENT';
+
+  @override
+  TestEvent.fromMap(Map<String, dynamic> json) : value = json['value'];
+
+  @override
+  Map<String, dynamic> toMap() => {'_type': _type, 'value': value};
 }
