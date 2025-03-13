@@ -58,7 +58,7 @@ final class TextDiffOpInsert extends TextDiffOp {
 
   const TextDiffOpInsert({required this.line, required this.content});
 
-  int get count => content.length;
+  int get count => content.split('\n').length;
 
   @override
   String toString() => 'Paste[line: $line, content: $content]';
