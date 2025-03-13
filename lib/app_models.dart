@@ -41,24 +41,6 @@ class Note {
   }
 }
 
-class ContentDiff {
-  //
-}
-
-class ContentDiffPaste {
-  int line;
-  String content;
-
-  ContentDiffPaste(this.line, this.content);
-}
-
-class ContentDiffDelete {
-  int fromLine;
-  int lineCount;
-
-  ContentDiffDelete(this.fromLine, this.lineCount);
-}
-
 enum TagAction { add, remove }
 
 class Tags {

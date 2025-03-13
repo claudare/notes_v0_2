@@ -39,7 +39,7 @@ Best to worst
 - [isar](https://pub.dev/packages/isar). Pretty good, but no union support, as in sealed. Plus heavy on code generation. Still uses ffi for "performance" reasons.
 - [objectbox](https://pub.dev/packages/objectbox) meh
 
-Im gonna use `sqlite_async`
+Im gonna use `sqlite_async`. [bson](https://github.com/mongo-dart/bson/blob/main/example/object/object_serialize.dart) format could be interesting for data compression, but for now its low priority. Plus I dont like how the library requires that there is a global repository.
 
 # Some definitions
 
