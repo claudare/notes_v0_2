@@ -56,7 +56,8 @@ final class TextDiffOpInsert extends TextDiffOp {
   final int line;
   final String content;
 
-  const TextDiffOpInsert({required this.line, required this.content});
+  const TextDiffOpInsert({required this.line, required this.content})
+    : assert(content.length == 0, 'content cannot be empty');
 
   int get count => content.split('\n').length;
 
