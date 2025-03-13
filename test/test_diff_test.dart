@@ -25,7 +25,8 @@ void main() {
         paste: (op) => 'Pasting "${op.content}" at line ${op.line}',
         delete: (op) => 'Deleting ${op.count} lines from line ${op.line}',
       );
-      print(description);
+      final _ = description;
+      // print(description);
     }
 
     // Test applying operations (example)
