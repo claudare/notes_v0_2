@@ -1,30 +1,10 @@
 import 'package:notes_v0_2/id.dart';
 
-// class StreamGlobal extends StreamName {
-//   static const _name = "global";
-
-//   StreamGlobal() : super(_name, null);
-
-//   static bool isValid(StreamName streamId) {
-//     return streamId.name == _name && !streamId.hasId;
-//   }
-// }
-
-// class StreamNote extends StreamNameWithId {
-//   static const _name = "note";
-
-//   StreamNote(Id id) : super(_name, id);
-
-//   static bool isValid(StreamName streamId) {
-//     return streamId.name == _name && streamId.hasId;
-//   }
-// }
-
 // this is either a constant global name
 // or an id name
 // either way the length of this id is
 // binary 16 bytes
-// text 24 bytes. Global are actually 16 bytes
+// text 24 bytes. Named ones are actually 16 bytes
 class Stream {
   final String? _name;
   final Id? _id;

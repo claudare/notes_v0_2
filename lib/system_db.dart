@@ -123,7 +123,7 @@ class SystemDb {
   DeviceId get thisDeviceId => _idGenerator.deviceId;
 
   Id newId(String scope) {
-    return _idGenerator.newUId(scope);
+    return _idGenerator.newId(scope);
   }
 
   // should data really be string, or should it be actual event?

@@ -178,7 +178,7 @@ void main() {
 
       // Generate multiple IDs and ensure they're all unique
       for (int i = 0; i < 100; i++) {
-        final id = generator.newUId('test');
+        final id = generator.newId('test');
         expect(ids.contains(id), isFalse);
         ids.add(id);
       }
@@ -189,7 +189,7 @@ void main() {
       final generator = IdGenerator(deviceId);
 
       for (int i = 0; i < 10; i++) {
-        final id = generator.newUId('test');
+        final id = generator.newId('test');
         expect(id.getDeviceId(), equals(deviceId));
       }
     });
@@ -198,11 +198,11 @@ void main() {
       final generator = IdGenerator(DeviceId(12345), counter: 100);
 
       expect(generator.counter, equals(100));
-      final id1 = generator.newUId('test');
+      final id1 = generator.newId('test');
       expect(id1.getCounter(), equals(100));
       expect(generator.counter, equals(101));
 
-      final id2 = generator.newUId('test');
+      final id2 = generator.newId('test');
       expect(id2.getCounter(), equals(101));
       expect(generator.counter, equals(102));
     });
@@ -210,13 +210,13 @@ void main() {
     test('Should wrap counter correctly', () {
       final generator = IdGenerator(DeviceId(12345), counter: 65535 - 2);
 
-      final id1 = generator.newUId('test');
+      final id1 = generator.newId('test');
       expect(id1.getCounter(), equals(65535 - 2));
 
-      final id2 = generator.newUId('test');
+      final id2 = generator.newId('test');
       expect(id2.getCounter(), equals(65535 - 1));
 
-      final id3 = generator.newUId('test');
+      final id3 = generator.newId('test');
       expect(id3.getCounter(), equals(0));
     });
 
@@ -240,7 +240,7 @@ void main() {
     test('Should create and parse ID across different instances', () {
       // Generate an ID
       final generator = IdGenerator(DeviceId(12345));
-      final id = generator.newUId('test');
+      final id = generator.newId('test');
       final idStr = id.toString();
 
       // Parse it back in a different context
@@ -258,8 +258,8 @@ void main() {
       final generator2 = IdGenerator(DeviceId(2), counter: 10);
 
       // Generate IDs from each
-      final id1 = generator1.newUId('test');
-      final id2 = generator2.newUId('test');
+      final id1 = generator1.newId('test');
+      final id2 = generator2.newId('test');
 
       // Verify they're all different
       expect(id1 == id2, isFalse);
@@ -275,7 +275,7 @@ void main() {
 
       // Generate a large number of IDs and check for duplicates
       for (int i = 0; i < 10000; i++) {
-        final id = generator.newUId('test');
+        final id = generator.newId('test');
         final idStr = id.toString();
         expect(idSet.contains(idStr), isFalse);
         idSet.add(idStr);
@@ -314,7 +314,7 @@ void main() {
 
       final stopwatch = Stopwatch()..start();
       for (int i = 0; i < count; i++) {
-        generator.newUId('test');
+        generator.newId('test');
       }
       stopwatch.stop();
 

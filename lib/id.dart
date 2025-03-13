@@ -260,7 +260,7 @@ class IdGenerator {
     }
   }
 
-  Id newUId(String scope) {
+  Id newId(String scope) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final currentCount = _getAndIncrementCounter();
     return Id.fromParts(scope, timestamp, deviceId.value, currentCount);
