@@ -60,20 +60,20 @@ class SystemDb {
     }
   }
 
-  SystemDb({
-    String? path,
+  SystemDb(
+    String path, {
     required DeviceId deviceId,
     this.loggingEnabled = false,
   }) : _idGenerator = IdGenerator(deviceId) {
-    if (path == null) {
-      tempPath = tempDbPath();
-      // Open temporary database
-      db = SqliteDatabase(path: tempPath);
-    } else {
-      // Open database from a file
-      db = SqliteDatabase(path: path);
-      throw UnimplementedError("too early for this");
-    }
+    // Open database from a file
+    db = SqliteDatabase(path: path);
+    throw UnimplementedError("too early for this");
+  }
+
+  SystemDb.temporary({required DeviceId deviceId, this.loggingEnabled = false})
+    : _idGenerator = IdGenerator(deviceId) {
+    tempPath = tempDbPath();
+    db = SqliteDatabase(path: tempPath);
   }
 
   Future<void> init() async {

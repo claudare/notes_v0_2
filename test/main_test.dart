@@ -13,7 +13,9 @@ void main() async {
     late AppDb appDb;
 
     setUp(() async {
-      systemDb = SystemDb(deviceId: DeviceId(0)); // device id 0 is 111
+      systemDb = SystemDb.temporary(
+        deviceId: DeviceId(0),
+      ); // device id 0 is 111
       await systemDb.init();
       appDb = AppDb(systemDb.db);
       await appDb.migrate();
