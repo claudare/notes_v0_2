@@ -30,11 +30,11 @@ class StreamName {
   final String name;
   final Id? _id;
 
-  const StreamName(this.name, this._id);
-  // : assert(
-  //     name.length > _maxNameSize,
-  //     'stream name cannot be longer then $_maxNameSize. given ${name}',
-  //   );
+  const StreamName(this.name, this._id)
+    : assert(
+        name.length <= _maxNameSize,
+        'stream name cannot be longer then $_maxNameSize. given ${name} with length ${name.length}',
+      );
 
   factory StreamName.fromString(String value) {
     final parts = value.split('-');

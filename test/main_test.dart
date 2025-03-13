@@ -24,7 +24,7 @@ void main() async {
     });
 
     test('Create a new note stream', () async {
-      final noteId = systemDb.newId();
+      final noteId = systemDb.newId('note');
 
       final globalStreamId = StreamGlobal();
       final noteStreamId = StreamNote(noteId);
@@ -44,7 +44,7 @@ void main() async {
     });
 
     test('Edit the body of a note', () async {
-      final noteId = systemDb.newId();
+      final noteId = systemDb.newId('note');
 
       final globalStreamId = StreamGlobal();
       final noteStreamId = StreamNote(noteId);
@@ -79,7 +79,7 @@ void main() async {
     });
 
     test('Assign a tag to a note', () async {
-      final noteId = systemDb.newId();
+      final noteId = systemDb.newId('note');
 
       final globalStreamId = StreamGlobal();
       final noteStreamId = StreamNote(noteId);
@@ -118,7 +118,7 @@ void main() async {
     });
 
     test('Unassign a tag from a note', () async {
-      final noteId = systemDb.newId();
+      final noteId = systemDb.newId('note');
 
       final globalStreamId = StreamGlobal();
       final noteStreamId = StreamNote(noteId);

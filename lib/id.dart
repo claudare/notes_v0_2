@@ -1,92 +1,172 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-// anything named "Dd" is the unique id defined in this file
+// anything named "id" is the unique id defined in this file
 // "seq" denotes an autogrowing sequence. 0 -> infinity
 // "aid" denotes autoincrementing ids not related to sequences
 
-/// id is globally unique lexicographically sortable id
-/// binary length is 12
-/// text length is 19
+/// ids are unique lexicographically sortable id
+/// they are scoped by a human-readable prefix that is upto 4 bytes long
+/// binary length is 16
+/// text length is 24
 class Id implements Comparable<Id> {
-  static const _size = 12;
+  static const _binLen = 16;
+  static const _strLen = 24;
 
-  Uint8List bytes;
+  static const _binLenScope = 4;
+  static const _binLenTimestamp = 8;
+  static const _binLenDevice = 2;
+  static const _binLenCounter = 2;
 
-  Id(this.bytes) {
-    if (bytes.length != _size) {
-      throw ArgumentError('ID must be exactly 12 bytes');
+  // timestamp is valid until 292,277,026,596 AD, at 20:10:55 UTC
+  static const _strLenTimestamp = 11;
+  // Can represent 58³-1 = 195,111 devices
+  static const _strLenDevice = 3;
+  // Can handle up to 195,111 IDs per millisecond
+  static const _strLenCounter = 3;
+
+  final Uint8List bytes;
+
+  const Id(this.bytes)
+    : assert(
+        bytes.length == _binLen,
+        'id must be $_binLen bytes long, got ${bytes.length} instead',
+      );
+
+  // im gonna keep this as is now
+  factory Id.fromString(String id) {
+    if (id.length > _strLen || id.length < _strLen - 3) {
+      throw FormatException('Invalid ID length');
     }
-  }
 
-  Id.fromString(String id) : bytes = Uint8List(_size) {
-    final parts = id.split('-');
-    if (parts.length != 3) {
-      throw FormatException("Invalid ID format");
+    const dashAscii = 0x2D;
+
+    // Find first dash (scope separator)
+    int firstDash = -1;
+    for (int i = 1; i <= _binLenScope; i++) {
+      if (id.codeUnitAt(i) == dashAscii) {
+        firstDash = i;
+        break;
+      }
+    }
+    if (firstDash == -1) {
+      throw FormatException('Invalid ID format');
     }
 
-    // Convert components back to integers
-    final timestamp = _fromBase58(parts[0]);
-    final deviceIdNum = _fromBase58(parts[1]);
-    final counter = _fromBase58(parts[2]);
+    // Calculate expected positions of other dashes
+    final secondDash = firstDash + _strLenTimestamp + 1;
+    final thirdDash = secondDash + _strLenDevice + 1;
+    final totalLength = thirdDash + _strLenCounter + 1;
 
-    // Set the values in the byte buffer
-    final view = ByteData.view(bytes.buffer);
-    view.setUint64(0, timestamp); // 8 bytes for timestamp
-    view.setUint16(8, deviceIdNum); // 2 bytes for device ID
-    view.setUint16(10, counter); // 2 bytes for counter
+    // Verify dash positions and final length
+    if (secondDash >= id.length ||
+        thirdDash >= id.length ||
+        id.codeUnitAt(secondDash) != dashAscii ||
+        id.codeUnitAt(thirdDash) != dashAscii ||
+        id.length != totalLength) {
+      throw FormatException('Invalid ID format');
+    }
+
+    // Extract components
+    final scope = id.substring(0, firstDash);
+    if (scope.isEmpty) {
+      throw FormatException('Invalid ID format');
+    }
+
+    final timestampStr = id.substring(firstDash + 1, secondDash);
+    final timestamp = _fromBase58(timestampStr);
+
+    final deviceStr = id.substring(secondDash + 1, thirdDash);
+    final device = _fromBase58(deviceStr);
+
+    final counterStr = id.substring(thirdDash + 1);
+    final counter = _fromBase58(counterStr);
+
+    return Id.fromParts(scope, timestamp, device, counter);
   }
 
-  /// Creates a new Id from individual timestamp, device ID, and counter values
-  Id.fromParts(int timestamp, int deviceId, int counter)
-    : bytes = Uint8List(_size) {
+  /// Creates a new Id from individual timestamp, device, and counter values
+  Id.fromParts(String scope, int timestamp, int device, int counter)
+    : bytes = Uint8List(_binLen),
+      assert(
+        scope.isNotEmpty && scope.length <= 4,
+        'scope must be 32 bits, got ${scope.length.bitLength} bits of $scope instead',
+      ),
+      assert(
+        timestamp >= 0,
+        'timestamp must be 64 bits, got nagative value of $timestamp instead',
+      ),
+      assert(
+        device >= 0 && device <= _maxDeviceIdValue,
+        'device must be 16 bits, got value of $device instead',
+      ),
+      assert(
+        counter >= 0 && counter <= _maxCounterValue,
+        'counter must be 16 bits, got value of $counter instead',
+      ) {
     final view = ByteData.view(bytes.buffer);
-    view.setUint64(0, timestamp); // 8 bytes for timestamp
-    view.setUint16(8, deviceId); // 2 bytes for device ID
-    view.setUint16(10, counter); // 2 bytes for counter
+    for (int i = 0; i < scope.length; i++) {
+      bytes[i] = scope.codeUnitAt(i);
+      // the rest are initial zero
+    }
+    view.setUint64(_binLenScope, timestamp);
+    view.setUint16(_binLenScope + _binLenTimestamp, device);
+    view.setUint16(_binLenScope + _binLenTimestamp + _binLenDevice, counter);
   }
 
-  // this function should never exist. proper device id must be passed
-  // Uid.random() : bytes = Uint8List(_size) {
-  //   final timestamp = DateTime.now().millisecondsSinceEpoch;
-  //   final deviceId = Random.secure().nextInt(_maxDeviceIdValue);
-  //   final counterId = Random.secure().nextInt(_maxCounterValue);
-
-  //   Uid.fromParts(timestamp, deviceId, counterId);
-  // }
+  /// Returns the scope component as String
+  String getScope() {
+    final chars = <int>[];
+    for (int i = 0; i < _binLenScope; i++) {
+      final byte = bytes[i];
+      if (byte == 0) break;
+      chars.add(byte);
+    }
+    return String.fromCharCodes(chars);
+  }
 
   /// Returns the timestamp component as a DateTime object
   DateTime getTimestamp() {
     final view = ByteData.view(bytes.buffer);
-    final timestampMs = view.getUint64(0);
+    final timestampMs = view.getUint64(_binLenScope);
     return DateTime.fromMillisecondsSinceEpoch(timestampMs);
   }
 
-  /// Returns the device ID component
+  /// Returns the device component as DeviceId
   DeviceId getDeviceId() {
     final view = ByteData.view(bytes.buffer);
-    final deviceIdNum = view.getUint16(8);
-    return DeviceId(deviceIdNum);
+    final deviceNum = view.getUint16(_binLenScope + _binLenTimestamp);
+    return DeviceId(deviceNum);
   }
 
-  /// Returns the counter component
+  /// Returns the counter component as int
   int getCounter() {
     final view = ByteData.view(bytes.buffer);
-    return view.getUint16(10);
+    return view.getUint16(_binLenScope + _binLenTimestamp + _binLenDevice);
   }
 
   @override
   String toString() {
     final view = ByteData.view(bytes.buffer);
-    final timestamp = view.getUint64(0); // 8 bytes for timestamp
-    final deviceIdNum = view.getUint16(8); // 2 bytes for device ID
-    final counter = view.getUint16(10); // 2 bytes for counter
 
-    final timestampStr = _toBase58(timestamp, _timestampSize);
-    final deviceIdStr = _toBase58(deviceIdNum, _deviceIdSize);
-    final counterStr = _toBase58(counter, _counterSize);
+    final timestamp = view.getUint64(_binLenScope);
+    final deviceIdNum = view.getUint16(_binLenScope + _binLenTimestamp);
+    final counter = view.getUint16(
+      _binLenScope + _binLenTimestamp + _binLenDevice,
+    );
 
-    return "$timestampStr-$deviceIdStr-$counterStr";
+    final scopeStr = getScope();
+    final timestampStr = _toBase58(timestamp, _strLenTimestamp);
+    final deviceIdStr = _toBase58(deviceIdNum, _strLenDevice);
+    final counterStr = _toBase58(counter, _strLenCounter);
+    final result = "$scopeStr-$timestampStr-$deviceIdStr-$counterStr";
+
+    assert(
+      result.length <= _strLen && result.length > _strLen - _binLenScope,
+      'got length ${result.length} for result "$result"',
+    );
+
+    return result;
   }
 
   /// Equality operator to compare two IDs
@@ -95,7 +175,7 @@ class Id implements Comparable<Id> {
     if (identical(this, other)) return true;
     if (other is! Id) return false;
 
-    for (int i = 0; i < _size; i++) {
+    for (int i = 0; i < _binLen; i++) {
       if (bytes[i] != other.bytes[i]) return false;
     }
     return true;
@@ -106,7 +186,7 @@ class Id implements Comparable<Id> {
   @override
   int get hashCode {
     int result = 17;
-    for (int i = 0; i < _size; i++) {
+    for (int i = 0; i < _binLen; i++) {
       result = 37 * result + bytes[i];
     }
     return result;
@@ -114,7 +194,7 @@ class Id implements Comparable<Id> {
 
   @override
   int compareTo(Id other) {
-    for (int i = 0; i < _size; i++) {
+    for (int i = 0; i < _binLen; i++) {
       final self = bytes[i];
       final that = other.bytes[i];
       if (self > that) {
@@ -130,18 +210,18 @@ class Id implements Comparable<Id> {
 class DeviceId {
   final int value; // hmmm, its not bytes
 
-  DeviceId(this.value) {
-    if (value < 0 || value >= _maxDeviceIdValue) {
-      throw ArgumentError(
-        'Device ID must be between 0 and ${_maxDeviceIdValue - 1}',
+  const DeviceId(this.value)
+    : assert(
+        value >= 0 && value < _maxDeviceIdValue,
+        'incorrect deviceId $value, expected a value in 0-${_maxDeviceIdValue - 1} range',
       );
-    }
-  }
 
   /// Creates a DeviceId from its Base58 string representation
   DeviceId.fromString(String valueStr) : value = _fromBase58(valueStr) {
     if (value >= _maxDeviceIdValue) {
-      throw FormatException('Device ID value exceeds maximum allowed value');
+      throw FormatException(
+        'Device ID value exceeds maximum allowed value of $_maxDeviceIdValue',
+      );
     }
   }
 
@@ -150,7 +230,7 @@ class DeviceId {
 
   /// Converts the DeviceUid to its Base58 string representation
   @override
-  String toString() => _toBase58(value, _deviceIdSize);
+  String toString() => _toBase58(value, Id._strLenDevice);
 
   /// Equality operator to compare two DeviceIds
   @override
@@ -174,17 +254,15 @@ class IdGenerator {
     // If no counter provided, start with a random value to reduce collision potential
     if (counter == 0) {
       _counter = Random.secure().nextInt(_maxCounterValue);
-    } else if (counter < 0 || counter >= _maxCounterValue) {
-      throw ArgumentError(
-        'Counter must be between 0 and ${_maxCounterValue - 1}',
-      );
+    } else if (counter < 0 || counter > _maxCounterValue) {
+      throw ArgumentError('Counter must be between 0 and $_maxCounterValue');
     }
   }
 
-  Id newUId() {
+  Id newUId(String scope) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final currentCount = _getAndIncrementCounter();
-    return Id.fromParts(timestamp, deviceId.value, currentCount);
+    return Id.fromParts(scope, timestamp, deviceId.value, currentCount);
   }
 
   /// Increment counter and store the new value
@@ -213,14 +291,9 @@ const String _base58Chars =
     '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const int _base58Radix = 58;
 
-const int _timestampSize =
-    11; // u64 value, valid until 292,277,026,596 AD, at 20:10:55 UTC
-const int _deviceIdSize = 3; // Can represent 58³ = 195,112 devices
-const int _counterSize = 3; // Can handle up to 195,112 IDs per millisecond
-
-// Maximum values for device ID and counter components (2^16)
-const int _maxDeviceIdValue = 65536; // u16
-const int _maxCounterValue = 65536;
+// Maximum values for device ID and counter components
+const int _maxDeviceIdValue = 0xFFFF; // u16
+const int _maxCounterValue = 0xFFFF;
 
 /// Converts a number to a Base58 string with fixed length
 String _toBase58(int number, int length) {

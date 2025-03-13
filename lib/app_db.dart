@@ -9,7 +9,7 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
   SqliteMigration(1, (tx) async {
     await tx.execute('''
       CREATE TABLE app_note (
-        id VARCHAR(19) PRIMARY KEY NOT NULL,
+        id VARCHAR(24) PRIMARY KEY NOT NULL,
         data BLOB NOT NULL
       );
     ''');

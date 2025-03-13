@@ -31,20 +31,24 @@ sealed class Event {
   Future<void> apply(StreamName inStreamId, AppDb db) async => {};
 }
 
-class NoteNewStreamCreated extends Event {
+final class NoteNewStreamCreated extends Event {
   final StreamNameWithId streamId;
 
-  NoteNewStreamCreated({required this.streamId}) {
-    if (!StreamNote.isValid(streamId)) {
-      throw ArgumentError("streamId is not note! got instead $streamId");
-    }
-  }
+  const NoteNewStreamCreated({required this.streamId});
+  // : assert(StreamNote.isValid(streamId)),
+  //   assert(streamId.name == "note");
+  // {
+  //   if (!StreamNote.isValid(streamId)) {
+  //     throw ArgumentError("streamId is not note! got instead $streamId");
+  //   }
+  // }
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
-    if (!StreamGlobal.isValid(inStreamId)) {
-      throw ArgumentError("streamId is not global! got instead $inStreamId");
-    }
+    assert(
+      StreamGlobal.isValid(inStreamId),
+      "streamId is not global! got instead $inStreamId",
+    );
 
     // create a new note, whos id is part of the stream
     await db.noteCreate(streamId.id);
@@ -64,9 +68,9 @@ class NoteNewStreamCreated extends Event {
 }
 
 class NoteBodyEditedFull extends Event {
-  String value;
+  final String value;
 
-  NoteBodyEditedFull({required this.value});
+  const NoteBodyEditedFull({required this.value});
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
@@ -88,7 +92,7 @@ class NoteBodyEditedFull extends Event {
 // this "reorders" this event into the "archived" list
 // there are 3 ordering lists: main, archived, pinned
 class NoteArchived extends Event {
-  NoteArchived();
+  const NoteArchived();
 
   @override
   Future<void> apply(StreamName inStreamId, AppDb db) async {
@@ -108,7 +112,7 @@ class NoteArchived extends Event {
 /// they are simply assigned. the logic of this handler (apply)
 /// creates and removes them from general list
 class TagAssignedToNote extends Event {
-  String tagName;
+  final String tagName;
 
   TagAssignedToNote({required this.tagName});
 
@@ -129,7 +133,7 @@ class TagAssignedToNote extends Event {
 }
 
 class TagUnassignedToNote extends Event {
-  String tagName;
+  final String tagName;
 
   TagUnassignedToNote({required this.tagName});
 

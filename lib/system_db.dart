@@ -24,7 +24,7 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
     // and be able to iterate a global view of the events
     await tx.execute('''
       CREATE TABLE sys_eventlog (
-        event_id VARCHAR(19) PRIMARY KEY NOT NULL,
+        event_id VARCHAR(24) PRIMARY KEY NOT NULL,
         device_id VARCHAR(3) NOT NULL,
         device_seq INTEGER NOT NULL,
         stream_id TEXT NOT NULL,
@@ -122,8 +122,8 @@ class SystemDb {
 
   DeviceId get thisDeviceId => _idGenerator.deviceId;
 
-  Id newId() {
-    return _idGenerator.newUId();
+  Id newId(String scope) {
+    return _idGenerator.newUId(scope);
   }
 
   // should data really be string, or should it be actual event?
@@ -133,7 +133,7 @@ class SystemDb {
 
     final dataStr = jsonEncode(event.toMap());
     final streamIdStr = streamId.toString();
-    final eventId = newId().toString();
+    final eventId = newId("ev").toString();
     final deviceId = thisDeviceId.toString();
     final deviceSeq = dbSequences.getDeviceSequence(deviceId).next();
     final streamSeq = dbSequences.nextStreamSequence(deviceId, streamIdStr);

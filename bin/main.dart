@@ -1,11 +1,12 @@
 import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/stream_id.dart';
+import 'package:notes_v0_2/stream_name.dart';
 import 'package:notes_v0_2/system_db.dart';
 import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/system_models.dart';
 import 'package:notes_v0_2/utils.dart';
 
+// run with dart --enable-asserts bin/main.dart
 void main() async {
   final systemDb = SystemDb(deviceUid: DeviceId(0)); // device id 0 is 111
   await systemDb.init();
@@ -15,10 +16,10 @@ void main() async {
   try {
     await appDb.migrate();
 
-    final noteId = systemDb.newId();
+    final noteId = systemDb.newId("note");
 
-    final globalStreamId = StreamIdGlobal();
-    final noteStreamId = StreamIdNote(noteId);
+    final globalStreamId = StreamGlobal();
+    final noteStreamId = StreamNote(noteId);
 
     await appendEventLogMinimalAndApply(
       systemDb,
