@@ -1,6 +1,6 @@
 import 'package:notes_v0_2/app_db.dart';
 import 'package:notes_v0_2/app_models.dart';
-import 'package:notes_v0_2/stream_id.dart';
+import 'package:notes_v0_2/stream_name.dart';
 
 // following https://dart.dev/language/class-modifiers#sealed
 
@@ -28,21 +28,21 @@ sealed class Event {
   Map<String, dynamic> toMap();
 
   /// inStreamId is current stream id that is being written to
-  Future<void> apply(StreamId inStreamId, AppDb db) async => {};
+  Future<void> apply(StreamName inStreamId, AppDb db) async => {};
 }
 
 class NoteNewStreamCreated extends Event {
-  final StreamIdWithId streamId;
+  final StreamNameWithId streamId;
 
   NoteNewStreamCreated({required this.streamId}) {
-    if (!StreamIdNote.isValid(streamId)) {
+    if (!StreamNote.isValid(streamId)) {
       throw ArgumentError("streamId is not note! got instead $streamId");
     }
   }
 
   @override
-  Future<void> apply(StreamId inStreamId, AppDb db) async {
-    if (!StreamIdGlobal.isValid(inStreamId)) {
+  Future<void> apply(StreamName inStreamId, AppDb db) async {
+    if (!StreamGlobal.isValid(inStreamId)) {
       throw ArgumentError("streamId is not global! got instead $inStreamId");
     }
 
@@ -54,7 +54,7 @@ class NoteNewStreamCreated extends Event {
 
   @override
   NoteNewStreamCreated.fromMap(Map<String, dynamic> json)
-    : streamId = StreamIdWithId.fromString(json['streamId']);
+    : streamId = StreamNameWithId.fromString(json['streamId']);
 
   @override
   Map<String, dynamic> toMap() => {
@@ -69,7 +69,7 @@ class NoteBodyEditedFull extends Event {
   NoteBodyEditedFull({required this.value});
 
   @override
-  Future<void> apply(StreamId inStreamId, AppDb db) async {
+  Future<void> apply(StreamName inStreamId, AppDb db) async {
     final id = inStreamId.getIdOrThrow();
 
     await db.noteContentUpdate(id, fullBody: value);
@@ -91,7 +91,7 @@ class NoteArchived extends Event {
   NoteArchived();
 
   @override
-  Future<void> apply(StreamId inStreamId, AppDb db) async {
+  Future<void> apply(StreamName inStreamId, AppDb db) async {
     throw UnimplementedError();
   }
 
@@ -113,7 +113,7 @@ class TagAssignedToNote extends Event {
   TagAssignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(StreamId inStreamId, AppDb db) async {
+  Future<void> apply(StreamName inStreamId, AppDb db) async {
     final noteId = inStreamId.getIdOrThrow();
     await db.tagActionOnNote(noteId, tagName, TagAction.add);
   }
@@ -134,7 +134,7 @@ class TagUnassignedToNote extends Event {
   TagUnassignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(StreamId inStreamId, AppDb db) async {
+  Future<void> apply(StreamName inStreamId, AppDb db) async {
     final noteId = inStreamId.getIdOrThrow();
     await db.tagActionOnNote(noteId, tagName, TagAction.remove);
   }
