@@ -1,5 +1,5 @@
 import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/stream_name.dart';
+import 'package:notes_v0_2/stream.dart';
 import 'package:notes_v0_2/system_db.dart';
 import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
@@ -26,8 +26,8 @@ void main() async {
     test('Create a new note stream', () async {
       final noteId = systemDb.newId('note');
 
-      final globalStreamId = StreamName.global("global");
-      final noteStreamId = StreamName.id(noteId);
+      final globalStreamId = Stream.named("global");
+      final noteStreamId = Stream.id(noteId);
 
       await appendEventLogMinimalAndApply(
         systemDb,
@@ -46,8 +46,8 @@ void main() async {
     test('Edit the body of a note', () async {
       final noteId = systemDb.newId('note');
 
-      final globalStreamId = StreamName.global("global");
-      final noteStreamId = StreamName.id(noteId);
+      final globalStreamId = Stream.named("global");
+      final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await appendEventLogMinimalAndApply(
@@ -81,8 +81,8 @@ void main() async {
     test('Assign a tag to a note', () async {
       final noteId = systemDb.newId('note');
 
-      final globalStreamId = StreamName.global("global");
-      final noteStreamId = StreamName.id(noteId);
+      final globalStreamId = Stream.named("global");
+      final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await appendEventLogMinimalAndApply(
@@ -120,8 +120,8 @@ void main() async {
     test('Unassign a tag from a note', () async {
       final noteId = systemDb.newId('note');
 
-      final globalStreamId = StreamName.global("global");
-      final noteStreamId = StreamName.id(noteId);
+      final globalStreamId = Stream.named("global");
+      final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await appendEventLogMinimalAndApply(

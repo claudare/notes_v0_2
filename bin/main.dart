@@ -1,5 +1,5 @@
 import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/stream_name.dart';
+import 'package:notes_v0_2/stream.dart';
 import 'package:notes_v0_2/system_db.dart';
 import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
@@ -18,15 +18,15 @@ void main() async {
 
     final noteId = systemDb.newId("note");
 
-    final globalStreamId = StreamGlobal();
-    final noteStreamId = StreamNote(noteId);
+    final globalStreamId = Stream.named("global");
+    final noteStreamId = Stream.id(noteId);
 
     await appendEventLogMinimalAndApply(
       systemDb,
       appDb,
       EventLogMinimal(
         streamId: globalStreamId,
-        event: NoteNewStreamCreated(streamId: noteStreamId),
+        event: NoteNewStreamCreated(streamId: noteId),
       ),
     );
     await appendEventLogMinimalAndApply(

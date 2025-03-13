@@ -25,21 +25,14 @@ import 'package:notes_v0_2/id.dart';
 // either way the length of this id is
 // binary 16 bytes
 // text 24 bytes. Global are actually 16 bytes
-class StreamName {
+class Stream {
   final String? _name;
   final Id? _id;
 
   static const _maxNameLength = 16;
 
-  // const StreamName._(this._name, this._id)
-  //   : assert(_name != null && _id != null),
-  //     assert(
-  //       _name != null && _name.length <= _maxNameLength,
-  //       'Global stream name cannot be longer than $_maxNameLength characters',
-  //     );
-
   /// Creates a stream name without an ID
-  const StreamName.global(String name)
+  const Stream.named(String name)
     : assert(
         name.length <= _maxNameLength,
         'Global stream name cannot be longer than $_maxNameLength characters',
@@ -47,27 +40,20 @@ class StreamName {
       _name = name,
       _id = null;
 
-  const StreamName.id(Id id) : _name = null, _id = id;
+  const Stream.id(Id id) : _name = null, _id = id;
 
   /// Parses a stream name from its string representation
-  factory StreamName.fromString(String value) {
+  factory Stream.fromString(String value) {
     if (!value.contains('-')) {
-      return StreamName.global(value);
+      return Stream.named(value);
     }
 
     final id = Id.fromString(value);
-    return StreamName.id(id);
+    return Stream.id(id);
   }
 
   bool get isId => _id != null;
   bool get isGlobal => _name != null;
-
-  String get name {
-    if (isId) {
-      return _id!.toString();
-    }
-    return _name!;
-  }
 
   Id? get id {
     return _id;
@@ -105,12 +91,17 @@ class StreamName {
   }
 
   @override
-  String toString() => name;
+  String toString() {
+    if (isId) {
+      return _id!.toString();
+    }
+    return _name!;
+  }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is StreamName && other._name == _name && other._id == _id;
+    return other is Stream && other._name == _name && other._id == _id;
   }
 
   @override

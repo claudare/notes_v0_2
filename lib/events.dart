@@ -1,6 +1,6 @@
 import 'package:notes_v0_2/app_db.dart';
 import 'package:notes_v0_2/app_models.dart';
-import 'package:notes_v0_2/stream_name.dart';
+import 'package:notes_v0_2/stream.dart';
 import 'package:notes_v0_2/id.dart';
 // following https://dart.dev/language/class-modifiers#sealed
 
@@ -28,7 +28,7 @@ sealed class Event {
   Map<String, dynamic> toMap();
 
   /// inStreamId is current stream id that is being written to
-  Future<void> apply(StreamName inStreamId, AppDb db) async => {};
+  Future<void> apply(Stream inStreamId, AppDb db) async => {};
 }
 
 final class NoteNewStreamCreated extends Event {
@@ -44,7 +44,7 @@ final class NoteNewStreamCreated extends Event {
   // }
 
   @override
-  Future<void> apply(StreamName inStreamId, AppDb db) async {
+  Future<void> apply(Stream inStreamId, AppDb db) async {
     inStreamId.throwIfNotGlobalWithName("global");
 
     // create a new note, whos id is part of the stream
@@ -70,7 +70,7 @@ class NoteBodyEditedFull extends Event {
   const NoteBodyEditedFull({required this.value});
 
   @override
-  Future<void> apply(StreamName inStreamId, AppDb db) async {
+  Future<void> apply(Stream inStreamId, AppDb db) async {
     final noteId = inStreamId.getIdInScopeOrThrow("note");
 
     await db.noteContentUpdate(noteId, fullBody: value);
@@ -92,7 +92,7 @@ class NoteArchived extends Event {
   const NoteArchived();
 
   @override
-  Future<void> apply(StreamName inStreamId, AppDb db) async {
+  Future<void> apply(Stream inStreamId, AppDb db) async {
     throw UnimplementedError();
   }
 
@@ -114,7 +114,7 @@ class TagAssignedToNote extends Event {
   TagAssignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(StreamName inStreamId, AppDb db) async {
+  Future<void> apply(Stream inStreamId, AppDb db) async {
     final noteId = inStreamId.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.add);
   }
@@ -135,7 +135,7 @@ class TagUnassignedToNote extends Event {
   TagUnassignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(StreamName inStreamId, AppDb db) async {
+  Future<void> apply(Stream inStreamId, AppDb db) async {
     final noteId = inStreamId.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.remove);
   }

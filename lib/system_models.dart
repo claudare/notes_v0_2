@@ -1,12 +1,11 @@
 import 'dart:convert';
 
-// import 'package:notes_v0_2/db_app.dart';
 import 'package:notes_v0_2/events.dart';
-import 'package:notes_v0_2/stream_name.dart';
+import 'package:notes_v0_2/stream.dart';
 
 /// minimal information needed for resolving of the event
 class EventLogMinimal {
-  StreamName streamId;
+  Stream streamId;
   Event event;
 
   EventLogMinimal({required this.streamId, required this.event});
@@ -21,7 +20,7 @@ class EventLog {
   String eventUid;
   String deviceUid;
   int deviceSeq;
-  StreamName streamId;
+  Stream streamId;
   int streamSeq;
   Event event; // could use Uint8List here?
 
@@ -38,7 +37,7 @@ class EventLog {
     : eventUid = map['event_uid'],
       deviceUid = map['device_uid'],
       deviceSeq = map['device_seq'],
-      streamId = StreamName.fromString(map['stream_id']),
+      streamId = Stream.fromString(map['stream_id']),
       streamSeq = map['stream_seq'],
       event = Event.fromMap(jsonDecode(map['data']));
   // event = Event.parseEvent(jsonDecode(map['data']));
