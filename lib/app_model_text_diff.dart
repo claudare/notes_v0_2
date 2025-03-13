@@ -34,12 +34,7 @@ sealed class TextDiffOp {
 
   Map<String, dynamic> toMap() => map(
     paste: (op) => {'_type': 'paste', 'line': op.line, 'content': op.content},
-    delete:
-        (op) => {
-          '_type': 'delete',
-          'fromLine': op.fromLine,
-          'lineCount': op.lineCount,
-        },
+    delete: (op) => {'_type': 'delete', 'line': op.line, 'count': op.count},
   );
 
   static TextDiffOp fromMap(Map<String, dynamic> map) {
@@ -49,8 +44,8 @@ sealed class TextDiffOp {
         content: map['content'] as String,
       ),
       'delete' => TextDiffOpDelete(
-        fromLine: map['fromLine'] as int,
-        lineCount: map['lineCount'] as int,
+        line: map['line'] as int,
+        count: map['count'] as int,
       ),
       _ => throw ArgumentError('Unknown diff op type: ${map['_type']}'),
     };
@@ -63,18 +58,18 @@ final class TextDiffOpInsert extends TextDiffOp {
 
   const TextDiffOpInsert({required this.line, required this.content});
 
-  int get lineCount => content.length;
+  int get count => content.length;
 
   @override
   String toString() => 'Paste[line: $line, content: $content]';
 }
 
 final class TextDiffOpDelete extends TextDiffOp {
-  final int fromLine;
-  final int lineCount;
+  final int line;
+  final int count;
 
-  const TextDiffOpDelete({required this.fromLine, required this.lineCount});
+  const TextDiffOpDelete({required this.line, required this.count});
 
   @override
-  String toString() => 'Delete[fromLine: $fromLine, lineCount: $lineCount]';
+  String toString() => 'Delete[line: $line, count: $count]';
 }

@@ -8,7 +8,7 @@ void main() {
     final diff = TextDiff(
       ops: [
         TextDiffOpInsert(line: 0, content: 'Hello'),
-        TextDiffOpDelete(fromLine: 1, lineCount: 2),
+        TextDiffOpDelete(line: 1, count: 2),
         TextDiffOpInsert(line: 3, content: 'World'),
       ],
     );
@@ -23,8 +23,7 @@ void main() {
     for (final op in diff.ops) {
       final description = op.map(
         paste: (op) => 'Pasting "${op.content}" at line ${op.line}',
-        delete:
-            (op) => 'Deleting ${op.lineCount} lines from line ${op.fromLine}',
+        delete: (op) => 'Deleting ${op.count} lines from line ${op.line}',
       );
       print(description);
     }
@@ -44,12 +43,9 @@ void main() {
         },
         delete: (op) {
           // Remove specified number of lines
-          if (op.fromLine < document.length) {
-            final endIndex = (op.fromLine + op.lineCount).clamp(
-              0,
-              document.length,
-            );
-            document.removeRange(op.fromLine, endIndex);
+          if (op.line < document.length) {
+            final endIndex = (op.line + op.count).clamp(0, document.length);
+            document.removeRange(op.line, endIndex);
           }
         },
       );
@@ -62,7 +58,7 @@ void main() {
   test('TextDiffOp can be serialized and deserialized', () {
     final ops = [
       TextDiffOpInsert(line: 0, content: 'Hello'),
-      TextDiffOpDelete(fromLine: 1, lineCount: 2),
+      TextDiffOpDelete(line: 1, count: 2),
     ];
 
     for (final op in ops) {
@@ -75,8 +71,8 @@ void main() {
           expect(paste.content, equals(op.content));
         },
         delete: (delete) {
-          expect(delete.fromLine, equals((op as TextDiffOpDelete).fromLine));
-          expect(delete.lineCount, equals(op.lineCount));
+          expect(delete.line, equals((op as TextDiffOpDelete).line));
+          expect(delete.count, equals(op.count));
         },
       );
     }
