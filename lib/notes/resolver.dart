@@ -38,7 +38,15 @@ class NotesResolver {
 
         break;
       case TagUnassignedToNote():
-        throw UnimplementedError();
+        final noteId = inStream.getIdInScopeOrThrow("note");
+        final tagName = event.tagName;
+
+        final note = await _repo.noteGet(noteId);
+        note.tags.remove(tagName);
+
+        final tag = await _repo.tagGet(tagName);
+        tag.assignedToNotes.remove(noteId);
+
         break;
       case TestEvent():
         throw UnimplementedError();

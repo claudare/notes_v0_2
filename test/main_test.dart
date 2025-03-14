@@ -24,7 +24,7 @@ void main() async {
     );
   });
   group('Event Tests', () {
-    late TestAllSystemsInOne aio; // s stands for all Systems
+    late TestAllSystemsInOne aio; // s stands for aio Systems
 
     setUp(() async {
       aio = TestAllSystemsInOne();
@@ -88,7 +88,7 @@ void main() async {
 
       expect(note, isNotNull);
       expect(note.body, equals("hello world"));
-      // TODO: fix the potentially flaky time tests
+      // TODO: fix the potentiaioy flaky time tests
       expect(note.editedAt.compareTo(note.createdAt), equals(1));
     });
 
@@ -134,51 +134,51 @@ void main() async {
       expect(tags.assignedToNotes.contains(noteId), isTrue);
     });
 
-    // test('Unassign a tag from a note', () async {
-    //   final noteId = all.sysRepo.newId('note');
+    test('Unassign a tag from a note', () async {
+      final noteId = aio.sysRepo.newId('note');
 
-    //   final globalStreamId = Stream.named("global");
-    //   final noteStreamId = Stream.id(noteId);
+      final globalStreamId = Stream.named("global");
+      final noteStreamId = Stream.id(noteId);
 
-    //   // First create the note stream
-    //   await testSaveEventLogAndResolve(
-    //     all.sysRepo,
-    //     all.notesResolver,
-    //     EventLogMinimal(
-    //       stream: globalStreamId,
-    //       event: NoteNewStreamCreated(streamId: noteId),
-    //     ),
-    //   );
+      // First create the note stream
+      await testSaveEventLogAndResolve(
+        aio.sysRepo,
+        aio.notesResolver,
+        EventLogMinimal(
+          stream: globalStreamId,
+          event: NoteNewStreamCreated(streamId: noteId),
+        ),
+      );
 
-    //   // Assign a tag to the note
-    //   const tagName = 'testTag';
-    //   await testSaveEventLogAndResolve(
-    //     all.sysRepo,
-    //     all.notesResolver,
-    //     EventLogMinimal(
-    //       stream: noteStreamId,
-    //       event: TagAssignedToNote(tagName: tagName),
-    //     ),
-    //   );
+      // Assign a tag to the note
+      const tagName = 'testTag';
+      await testSaveEventLogAndResolve(
+        aio.sysRepo,
+        aio.notesResolver,
+        EventLogMinimal(
+          stream: noteStreamId,
+          event: TagAssignedToNote(tagName: tagName),
+        ),
+      );
 
-    //   // Unassign the tag from the note
-    //   await testSaveEventLogAndResolve(
-    //     all.sysRepo,
-    //     all.notesResolver,
-    //     EventLogMinimal(
-    //       stream: noteStreamId,
-    //       event: TagUnassignedToNote(tagName: tagName),
-    //     ),
-    //   );
+      // Unassign the tag from the note
+      await testSaveEventLogAndResolve(
+        aio.sysRepo,
+        aio.notesResolver,
+        EventLogMinimal(
+          stream: noteStreamId,
+          event: TagUnassignedToNote(tagName: tagName),
+        ),
+      );
 
-    //   // Verify that the tag has been unassigned from the note
-    //   final note = await all.notesRepo.noteGet(noteId);
-    //   expect(note, isNotNull);
-    //   expect(note!.tags.isEmpty, isTrue);
+      // Verify that the tag has been unassigned from the note
+      final note = await aio.notesStorage.noteGet(noteId);
+      expect(note, isNotNull);
+      expect(note!.tags.isEmpty, isTrue);
 
-    //   // Verify that the tag no longer exists in the general list
-    //   final tags = await all.notesRepo.tagsGet();
-    //   expect(tags.toList().length, equals(0));
-    // });
+      // Verify that the tag no longer exists in the general list
+      final tags = await aio.notesStorage.tagGet(tagName);
+      expect(tags, isNull);
+    });
   });
 }
