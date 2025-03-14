@@ -4,18 +4,18 @@ import 'dart:math';
 import 'package:sqlite_async/sqlite_async.dart';
 
 class Db {
-  late SqliteDatabase db;
+  late SqliteDatabase underlyingDb;
   String? tempPath;
 
-  Db(String path) : db = SqliteDatabase(path: path);
+  Db(String path) : underlyingDb = SqliteDatabase(path: path);
 
   Db.temporary() {
     tempPath = _tempDbPath();
-    db = SqliteDatabase(path: tempPath);
+    underlyingDb = SqliteDatabase(path: tempPath);
   }
 
   Future<void> deinit() async {
-    await db.close();
+    await underlyingDb.close();
 
     if (tempPath != null) {
       _tempDbCleanup(tempPath!);

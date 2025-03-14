@@ -10,38 +10,38 @@ import 'package:test/test.dart';
 
 void main() async {
   group('Event Tests', () {
-    late Db databaseSystem;
-    late Db databaseApp;
-    late SystemRepo systemDb;
-    late NotesRepo appDb;
+    late Db sysDb;
+    late Db notesDb;
+    late SystemRepo sysRepo;
+    late NotesRepo notesRepo;
 
     setUp(() async {
-      databaseSystem = Db.temporary();
-      databaseApp = Db.temporary();
+      sysDb = Db.temporary();
+      notesDb = Db.temporary();
 
-      systemDb = SystemRepo(
-        databaseSystem.db,
+      sysRepo = SystemRepo(
+        sysDb.underlyingDb,
         deviceId: DeviceId(0),
       ); // device id 0 is 111
-      await systemDb.init();
-      appDb = NotesRepo(databaseApp.db);
-      await appDb.migrate();
+      await sysRepo.init();
+      notesRepo = NotesRepo(notesDb.underlyingDb);
+      await notesRepo.migrate();
     });
 
     tearDown(() async {
-      await databaseSystem.deinit();
-      await databaseApp.deinit();
+      await sysDb.deinit();
+      await notesDb.deinit();
     });
 
     test('Create a new note stream', () async {
-      final noteId = systemDb.newId('note');
+      final noteId = sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
       final noteStreamId = Stream.id(noteId);
 
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
@@ -49,20 +49,20 @@ void main() async {
       );
 
       // Verify that the note has been created
-      final note = await appDb.noteGet(noteId);
+      final note = await notesRepo.noteGet(noteId);
       expect(note, isNotNull);
     });
 
     test('Edit the body of a note', () async {
-      final noteId = systemDb.newId('note');
+      final noteId = sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
       final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
@@ -71,8 +71,8 @@ void main() async {
 
       // Edit the note body
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: noteStreamId,
           event: NoteBodyEditedFull(value: "hello world"),
@@ -80,7 +80,7 @@ void main() async {
       );
 
       // Verify that the note body has been updated
-      final note = await appDb.noteGet(noteId);
+      final note = await notesRepo.noteGet(noteId);
 
       expect(note, isNotNull);
       expect(note!.body, equals("hello world"));
@@ -89,15 +89,15 @@ void main() async {
     });
 
     test('Assign a tag to a note', () async {
-      final noteId = systemDb.newId('note');
+      final noteId = sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
       final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
@@ -107,8 +107,8 @@ void main() async {
       // Assign a tag to the note
       const tagName = 'testTag';
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: noteStreamId,
           event: TagAssignedToNote(tagName: tagName),
@@ -116,27 +116,27 @@ void main() async {
       );
 
       // Verify that the tag has been assigned to the note
-      final note = await appDb.noteGet(noteId);
+      final note = await notesRepo.noteGet(noteId);
       expect(note, isNotNull);
       expect(note!.tags.length, equals(1));
       expect(note.tags.contains(tagName), isTrue);
 
       // Verify that the tag exists in the general list
-      final tags = await appDb.tagsGet();
+      final tags = await notesRepo.tagsGet();
       expect(tags.toList().length, equals(1));
       expect(tags.toList().contains(tagName), isTrue);
     });
 
     test('Unassign a tag from a note', () async {
-      final noteId = systemDb.newId('note');
+      final noteId = sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
       final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
@@ -146,8 +146,8 @@ void main() async {
       // Assign a tag to the note
       const tagName = 'testTag';
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: noteStreamId,
           event: TagAssignedToNote(tagName: tagName),
@@ -156,8 +156,8 @@ void main() async {
 
       // Unassign the tag from the note
       await appendEventLogMinimalAndApply(
-        systemDb,
-        appDb,
+        sysRepo,
+        notesRepo,
         EventLogMinimal(
           stream: noteStreamId,
           event: TagUnassignedToNote(tagName: tagName),
@@ -165,12 +165,12 @@ void main() async {
       );
 
       // Verify that the tag has been unassigned from the note
-      final note = await appDb.noteGet(noteId);
+      final note = await notesRepo.noteGet(noteId);
       expect(note, isNotNull);
       expect(note!.tags.isEmpty, isTrue);
 
       // Verify that the tag no longer exists in the general list
-      final tags = await appDb.tagsGet();
+      final tags = await notesRepo.tagsGet();
       expect(tags.toList().length, equals(0));
     });
   });

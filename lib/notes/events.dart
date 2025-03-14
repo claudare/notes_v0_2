@@ -44,9 +44,9 @@ final class NoteNewStreamCreated extends NotesEvent {
   @override
   Future<void> apply(Stream inStream, NotesRepo db) async {
     inStream.throwIfNotNamedWithName("global");
-
+    final note = Note(streamId);
     // create a new note, whos id is part of the stream
-    await db.noteCreate(streamId);
+    await db.noteSave(note);
   }
 
   static const String _type = 'newNoteStreamCreated';

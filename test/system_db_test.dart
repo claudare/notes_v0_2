@@ -18,7 +18,7 @@ void main() {
       databaseSystem = Db.temporary();
 
       final deviceId = DeviceId(123);
-      systemDb = SystemRepo(databaseSystem.db, deviceId: deviceId);
+      systemDb = SystemRepo(databaseSystem.underlyingDb, deviceId: deviceId);
       await systemDb.init();
 
       // Create a test stream

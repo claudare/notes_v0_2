@@ -51,14 +51,34 @@ class NotesRepo {
     await _migrations.migrate(db);
   }
 
-  Future<void> noteCreate(Id noteId) async {
-    final note = Note(noteId);
-
-    final res = await db.execute(
-      "INSERT INTO app_note (id, data) VALUES (?, ?) RETURNING data;",
-      [noteId.toString(), jsonEncode(note.toMap())],
+  Future<Note?> noteGet(Id id) async {
+    final noteRes = await db.getOptional(
+      'SELECT data FROM app_note WHERE id = ? LIMIT 1;',
+      [id.toString()],
     );
-    log('note created $res');
+
+    if (noteRes == null) {
+      log('note $id not found');
+      return null;
+    }
+
+    final note = Note.fromMap(jsonDecode(noteRes['data']));
+
+    return note;
+  }
+
+  /// save is an upsert. all functions here should have tx and nontx versions?
+  /// maybe all are tx, and the resolver actually holds the database? it will never
+  /// use it directly, but it will need it to trasact many changes
+  static Future<void> _noteSave(SqliteWriteContext tx, Note note) async {
+    await tx.execute(
+      'INSERT OR REPLACE INTO app_note (id, data) VALUES (?, ?);',
+      [note.noteId.toString(), jsonEncode(note.toMap())],
+    );
+  }
+
+  Future<void> noteSave(Note note) async {
+    await _noteSave(db, note);
   }
 
   // TODO: aquire note mutex for this operation, im trying to make this atomic
@@ -96,40 +116,6 @@ class NotesRepo {
     _noteSave(db, note);
 
     log('note updated $note');
-  }
-
-  Future<Note?> noteGet(Id id) async {
-    final noteRes = await db.getOptional(
-      'SELECT data FROM app_note WHERE id = ? LIMIT 1;',
-      [id.toString()],
-    );
-
-    if (noteRes == null) {
-      log('note $id not found');
-      return null;
-    }
-
-    final note = Note.fromMap(jsonDecode(noteRes['data']));
-
-    return note;
-  }
-
-  // this will recreate the state of the note at a given sequence id
-  // it needs to replay it, but for that it needed systemDb
-  // find a better way to do this
-  // Future<Note?> noteGetTimetravel(
-  //   SystemDb systemDb,
-  //   Id id,
-  //   int sequenceId,
-  // ) async {
-  //   // TODO
-  // }
-
-  static Future<void> _noteSave(SqliteWriteContext tx, Note note) async {
-    await tx.execute('UPDATE app_note SET data = ? WHERE id = ?;', [
-      jsonEncode(note.toMap()),
-      note.noteId.toString(),
-    ]);
   }
 
   Future<void> noteConflictResolve(Id id) async {

@@ -9,43 +9,43 @@ import 'package:notes_v0_2/system/utils.dart';
 
 // run with dart --enable-asserts bin/main.dart
 void main() async {
-  final databaseSystem = Db.temporary();
-  final systemDb = SystemRepo(databaseSystem.db, deviceId: DeviceId(0));
-  await systemDb.init();
+  final sysDb = Db.temporary();
+  final notesDb = Db.temporary();
 
-  final databaseApp = Db.temporary();
-  final appDb = NotesRepo(databaseApp.db, loggingEnabled: true);
+  final sysRepo = SystemRepo(sysDb.underlyingDb, deviceId: DeviceId(0));
+  final notesRepo = NotesRepo(notesDb.underlyingDb, loggingEnabled: true);
 
   try {
-    await appDb.migrate();
+    await sysRepo.init();
+    await notesRepo.migrate();
 
-    final noteId = systemDb.newId("note");
+    final noteId = sysRepo.newId("note");
 
     final globalStreamId = Stream.named("global");
     final noteStreamId = Stream.id(noteId);
 
     await appendEventLogMinimalAndApply(
-      systemDb,
-      appDb,
+      sysRepo,
+      notesRepo,
       EventLogMinimal(
         stream: globalStreamId,
         event: NoteNewStreamCreated(streamId: noteId),
       ),
     );
     await appendEventLogMinimalAndApply(
-      systemDb,
-      appDb,
+      sysRepo,
+      notesRepo,
       EventLogMinimal(
         stream: noteStreamId,
         event: NoteBodyEditedFull(value: "hello world"),
       ),
     );
 
-    final note = await appDb.noteGet(noteId);
+    final note = await notesRepo.noteGet(noteId);
 
     print("latest note state $note");
   } finally {
-    await databaseSystem.deinit();
-    await databaseApp.deinit();
+    await sysDb.deinit();
+    await notesDb.deinit();
   }
 }
