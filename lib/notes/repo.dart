@@ -51,6 +51,8 @@ class NotesRepo {
     await _migrations.migrate(db);
   }
 
+  // call it fetch?
+  // does caching happen inside the repo?
   Future<Note?> noteGet(Id id) async {
     final noteRes = await db.getOptional(
       'SELECT data FROM app_note WHERE id = ? LIMIT 1;',
@@ -80,6 +82,42 @@ class NotesRepo {
   Future<void> noteSave(Note note) async {
     await _noteSave(db, note);
   }
+
+  Future<bool> _noteDelete(SqliteWriteContext tx, Id id) async {
+    final res = await tx.execute(
+      'DELETE FROM app_note WHERE id = ? RETURNING id;',
+      [id.toString()],
+    );
+    return res.isNotEmpty;
+  }
+
+  Future<bool> noteDelete(Id id) async {
+    return await _noteDelete(db, id);
+  }
+
+  Future<Tags> tagsGet() async {
+    final tagsRes = await db.getOptional("SELECT data FROM app_tags LIMIT 1;");
+
+    if (tagsRes == null) {
+      throw Exception('tags were not initialized');
+    }
+
+    return Tags.fromMap(jsonDecode(tagsRes['data']));
+  }
+
+  static Future<void> _tagsSave(SqliteWriteContext tx, Tags tags) async {
+    await tx.execute('UPDATE app_tags SET data = ?;', [
+      jsonEncode(tags.toMap()),
+    ]);
+  }
+
+  Future<void> tagsSave(Tags tags) async {
+    _tagsSave(db, tags);
+  }
+
+  // there is no tags delete, as they always exist in the database
+
+  // all functions below do not belong to this abstraction level
 
   // TODO: aquire note mutex for this operation, im trying to make this atomic
   // i could do json type of manipulations, but they are ctoo complex
@@ -146,21 +184,5 @@ class NotesRepo {
       _noteSave(tx, note);
       _tagsSave(tx, tags);
     });
-  }
-
-  Future<Tags> tagsGet() async {
-    final tagsRes = await db.getOptional("SELECT data FROM app_tags LIMIT 1;");
-
-    if (tagsRes == null) {
-      throw Exception('tags were not initialized');
-    }
-
-    return Tags.fromMap(jsonDecode(tagsRes['data']));
-  }
-
-  static Future<void> _tagsSave(SqliteWriteContext tx, Tags tags) async {
-    await tx.execute('UPDATE app_tags SET data = ?;', [
-      jsonEncode(tags.toMap()),
-    ]);
   }
 }

@@ -41,9 +41,17 @@ void main() async {
       ),
     );
 
-    final note = await notesRepo.noteGet(noteId);
+    var note = await notesRepo.noteGet(noteId);
 
     print("latest note state $note");
+
+    // final badNoteId = sysRepo.newId("note");
+    final result = await notesRepo.noteDelete(noteId);
+
+    print("delete result $result");
+    note = await notesRepo.noteGet(noteId);
+
+    print("AFTER DELETE $note");
   } finally {
     await sysDb.deinit();
     await notesDb.deinit();
