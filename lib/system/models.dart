@@ -3,14 +3,12 @@ import 'dart:convert';
 import 'package:notes_v0_2/notes/events.dart';
 import 'package:notes_v0_2/common/stream.dart';
 
-abstract class AnyEvent<Resolver> {
+abstract class AnyEvent {
   const AnyEvent();
 
   AnyEvent.fromMap(Map<String, dynamic> map);
 
   Map<String, dynamic> toMap();
-
-  Future<void> apply(Stream inStream, Resolver anyRepo) async => {};
 }
 
 /// minimal information needed for resolving of the event

@@ -61,7 +61,7 @@ class SystemRepo {
     }
   }
 
-  SystemRepo(this.db, {required DeviceId deviceId, this.loggingEnabled = false})
+  SystemRepo(this.db, DeviceId deviceId, {this.loggingEnabled = false})
     : _idGenerator = IdGenerator(deviceId);
 
   Future<void> init() async {

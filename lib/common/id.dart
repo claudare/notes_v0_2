@@ -287,6 +287,15 @@ class IdGenerator {
   }
 }
 
+class TestIdGenerator {
+  static Id newTestId(String scope) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final deviceId = 0;
+    final currentCount = 0;
+    return Id.fromParts(scope, timestamp, deviceId, currentCount);
+  }
+}
+
 // Constants for Base58 encoding
 const String _base58Chars =
     '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

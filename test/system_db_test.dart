@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:notes_v0_2/common/db.dart';
 import 'package:notes_v0_2/notes/events.dart';
 import 'package:notes_v0_2/common/id.dart';
@@ -18,7 +16,7 @@ void main() {
       databaseSystem = Db.temporary();
 
       final deviceId = DeviceId(123);
-      systemDb = SystemRepo(databaseSystem.underlyingDb, deviceId: deviceId);
+      systemDb = SystemRepo(databaseSystem.underlyingDb, deviceId);
       await systemDb.init();
 
       // Create a test stream

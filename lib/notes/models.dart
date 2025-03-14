@@ -1,5 +1,9 @@
 import 'package:notes_v0_2/common/id.dart';
 
+// these are not models, but rather projections!
+// there are many note projections
+// notably, i need to model edit history
+
 class Note {
   Id noteId;
   String title;
@@ -34,6 +38,10 @@ class Note {
     'editedAt': editedAt.millisecondsSinceEpoch,
   };
 
+  // void updateEditedAt() {
+  //   editedAt = DateTime.now(); // this is hardly testable
+  // }
+
   @override
   String toString() {
     final tagStr = tags.isEmpty ? 'none' : tags.join(', ');
@@ -43,10 +51,12 @@ class Note {
 
 enum TagAction { add, remove }
 
+// TODO: change stored value from int to List<Id>
+// also allow to store each tag as a separate row
 class Tags {
   final Map<String, int> _tagCounts;
 
-  Tags(this._tagCounts);
+  const Tags(this._tagCounts);
   Tags.empty() : _tagCounts = {};
 
   void add(String tag) {
