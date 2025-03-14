@@ -79,7 +79,6 @@ class NotesStorage {
       [id.toString()],
     );
     if (res.isEmpty) {
-      // should this throw or just be asserted?
       throw ItemNotFoundException(id.toString());
     }
   }
@@ -117,11 +116,10 @@ class NotesStorage {
 
   static Future<void> _tagDelete(SqliteWriteContext tx, String tagName) async {
     final row = await tx.execute(
-      'DELETE FROM app_tag WHERE id = ? RETURNING id;',
+      'DELETE FROM app_tag WHERE name = ? RETURNING name;',
       [tagName],
     );
     if (row.isEmpty) {
-      // should this throw or just be asserted?
       throw ItemNotFoundException('tag with name "$tagName"');
     }
   }
@@ -129,6 +127,13 @@ class NotesStorage {
   Future<void> tagDelete(String tagName) async {
     log.fine('deleting tag $tagName');
     _tagDelete(db, tagName);
+  }
+
+  // functions which are labeled as xQuery are optimized/simple queries
+  Future<List<String>> tagQueryAllNames() async {
+    final rows = await db.getAll('SELECT name FROM app_tag;');
+
+    return rows.map((row) => row['name'] as String).toList();
   }
 
   Future<void> dumpPrint() async {

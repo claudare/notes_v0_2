@@ -93,6 +93,15 @@ class NotesRepo {
     return value;
   }
 
+  // will return a list of tag names to the caller
+  // i could just proxy this from storage
+  // cause i will need to load all the tags into the map, with all their relationships
+  // i think it would be more proper. Because when user wants to see all tags, that means they wanna see all
+  // references too. Its actually going to be faster to get each one, as its just a map lookup
+  Future<List<String>> tagNames() async {
+    return _storage.tagQueryAllNames();
+  }
+
   // this is a transaction boundary
   // [flush] performs its operations in the transaction
   Future<void> flush() async {

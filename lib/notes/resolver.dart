@@ -49,8 +49,7 @@ class NotesResolver {
 
         break;
       case TestEvent():
-        throw UnimplementedError();
-        break;
+        throw Exception('whatcha looking at?');
     }
   }
 }

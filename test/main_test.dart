@@ -160,6 +160,7 @@ void main() async {
           event: TagAssignedToNote(tagName: tagName),
         ),
       );
+      await aio.notesRepo.flush();
 
       // Unassign the tag from the note
       await testSaveEventLogAndResolve(
@@ -170,6 +171,7 @@ void main() async {
           event: TagUnassignedToNote(tagName: tagName),
         ),
       );
+      await aio.notesRepo.flush();
 
       // Verify that the tag has been unassigned from the note
       final note = await aio.notesStorage.noteGet(noteId);
