@@ -5,7 +5,7 @@ import 'package:notes_v0_2/common/id.dart';
 // notably, i need to model edit history
 
 class Note {
-  Id noteId;
+  final Id noteId;
   String title;
   String body;
   DateTime createdAt;
@@ -13,19 +13,20 @@ class Note {
 
   // conflicts are just pointers to the current body content
   // they are arrays, which are used to assist conflict resolution
-  String conflicts = 'TODO';
+  final String conflicts = 'TODO';
 
-  List<String> tags;
+  final Set<String> tags;
 
-  Note(this.noteId, {this.title = "", this.body = "", this.tags = const []})
+  Note(this.noteId, {this.title = "", this.body = ""})
     : createdAt = noteId.getTimestamp(),
-      editedAt = noteId.getTimestamp();
+      editedAt = noteId.getTimestamp(),
+      tags = {};
 
   Note.fromMap(Map<String, dynamic> map)
     : noteId = Id.fromString(map['noteId']),
       title = map['title'] ?? '',
       body = map['body'] ?? '',
-      tags = List<String>.from(map['tags']),
+      tags = Set<String>.from(map['tags']),
       createdAt = DateTime.fromMillisecondsSinceEpoch(map['createdAt']),
       editedAt = DateTime.fromMillisecondsSinceEpoch(map['editedAt']);
 
@@ -33,7 +34,7 @@ class Note {
     'noteId': noteId.toString(),
     'title': title,
     'body': body,
-    'tags': tags,
+    'tags': tags.toList(),
     'createdAt': createdAt.millisecondsSinceEpoch,
     'editedAt': editedAt.millisecondsSinceEpoch,
   };
@@ -49,48 +50,33 @@ class Note {
   }
 }
 
-enum TagAction { add, remove }
+class Tag {
+  final String name;
+  final Set<Id> assignedToNotes;
 
-// TODO: change stored value from int to List<Id>
-// also allow to store each tag as a separate row
-class Tags {
-  final Map<String, int> _tagCounts;
+  const Tag(this.name, this.assignedToNotes);
 
-  const Tags(this._tagCounts);
-  Tags.empty() : _tagCounts = {};
+  int get count => assignedToNotes.length;
 
-  void add(String tag) {
-    if (_tagCounts.containsKey(tag)) {
-      _tagCounts[tag] = _tagCounts[tag]! + 1;
-    } else {
-      _tagCounts[tag] = 1;
-    }
+  // Serialize to Map instead of List
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'assignedToNotes': assignedToNotes.map((id) => id.toString()).toList(),
+  };
+
+  // Create from Map<String, dynamic>
+  factory Tag.fromJson(Map<String, dynamic> json) {
+    return Tag(
+      json['name'],
+      (json['assignedToNotes'] as List)
+          .map((item) => Id.fromString(item.toString()))
+          .toSet(),
+    );
   }
-
-  void remove(String tag) {
-    if (_tagCounts.containsKey(tag)) {
-      _tagCounts[tag] = _tagCounts[tag]! - 1;
-      if (_tagCounts[tag] == 0) {
-        _tagCounts.remove(tag);
-      }
-    }
-  }
-
-  List<String> toList() {
-    return _tagCounts.keys.toList();
-  }
-
-  Map<String, dynamic> toMap() => _tagCounts;
-
-  factory Tags.fromMap(Map<String, dynamic> map) {
-    return Tags(Map<String, int>.from(map));
-  }
-  // or could do this:
-  // factory Tags.fromMap(Map<String, dynamic> map) => Tags(Map<String, int>.from(map));
 
   @override
   String toString() {
-    final tagsStr = toList().join(", ");
-    return 'TagMap[$tagsStr]';
+    final notesStr = assignedToNotes.map((id) => id.toString()).join(", ");
+    return 'Tag[notes: $notesStr]';
   }
 }

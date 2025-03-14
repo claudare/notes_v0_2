@@ -11,11 +11,11 @@ import '../lib/test_utils.dart';
 
 // run with dart --enable-asserts bin/main.dart
 void main() async {
-  final s = TestAllSystemsInOne(deviceId: DeviceId(42));
+  final aio = TestAllSystemsInOne(deviceId: DeviceId(42));
 
-  await s.init();
+  await aio.init();
   try {
-    final noteId = s.sysRepo.newId("note");
+    final noteId = aio.sysRepo.newId("note");
 
     final globalStreamId = Stream.named("global");
     final noteStreamId = Stream.id(noteId);
@@ -23,29 +23,31 @@ void main() async {
     // sysRepo.eventLogAppend(EventLogMinimal(stream:globalStreamId, event:))
 
     await testSaveEventLogAndResolve(
-      s.sysRepo,
-      s.notesResolver,
+      aio.sysRepo,
+      aio.notesResolver,
       EventLogMinimal(
         stream: globalStreamId,
         event: NoteNewStreamCreated(streamId: noteId),
       ),
     );
-    await s.notesRepo.flush();
+    await aio.notesRepo.flush();
     await testSaveEventLogAndResolve(
-      s.sysRepo,
-      s.notesResolver,
+      aio.sysRepo,
+      aio.notesResolver,
       EventLogMinimal(
         stream: noteStreamId,
         event: NoteBodyEditedFull(value: "hello world"),
       ),
     );
-    await s.notesRepo.flush();
+    await aio.notesRepo.flush();
 
-    var note = await s.notesStorage.noteGet(noteId);
+    var note = await aio.notesStorage.noteGet(noteId);
 
     print("latest note state $note");
+
+    await aio.notesStorage.dumpPrint();
   } finally {
-    await s.sysDb.deinit();
-    await s.notesDb.deinit();
+    await aio.sysDb.deinit();
+    await aio.notesDb.deinit();
   }
 }

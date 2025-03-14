@@ -32,7 +32,7 @@ class TestAllSystemsInOne {
     sysRepo = SystemRepo(sysDb.underlyingDb, deviceId ?? DeviceId(0));
 
     notesDb = Db.temporary();
-    notesStorage = NotesStorage(notesDb.underlyingDb, loggingEnabled: true);
+    notesStorage = NotesStorage(notesDb.underlyingDb);
     notesRepo = NotesRepo(notesStorage);
     notesResolver = NotesResolver(notesRepo);
   }

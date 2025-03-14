@@ -1,6 +1,7 @@
 import 'dart:convert';
 // import 'dart:developer' as dev;
 
+import 'package:logging/logging.dart';
 import 'package:notes_v0_2/notes/exceptions.dart';
 import 'package:notes_v0_2/notes/models.dart';
 import 'package:notes_v0_2/common/id.dart';
@@ -17,17 +18,11 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
 
     // yep, noSQL life
     await tx.execute('''
-      CREATE TABLE app_tags (
+      CREATE TABLE app_tag (
+        name TEXT PRIMARY KEY NOT NULL,
         data BLOB NOT NULL
       );
     ''');
-
-    await tx.execute(
-      '''
-      INSERT INTO app_tags (data) VALUES(?);
-    ''',
-      [jsonEncode({})],
-    );
   }),
 );
 
@@ -38,34 +33,23 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
 class NotesStorage {
   SqliteDatabase db;
 
-  bool loggingEnabled;
+  Logger log;
 
-  void log(String message) {
-    if (loggingEnabled) {
-      // developer logs only work when debugging.. ha
-      // dev.log(message, time: DateTime.now(), level: 100, name: "SystemDb");
-      print('[AppStorage] $message');
-    }
-  }
-
-  NotesStorage(this.db, {this.loggingEnabled = false});
+  NotesStorage(this.db) : log = Logger('NotesStorage');
 
   Future<void> migrate() async {
     await _migrations.migrate(db);
   }
 
-  // call it fetch?
-  // it would be interesting to throw if the note was not found
-  // instead of returning null. As trying to get note which does not exist
-  // is a fatal bug. the event will be simply disgarded
-  // a bug fix can bring that event back to life, as all events are preserved
   Future<Note?> noteGet(Id id) async {
+    log.finer('getting note $id');
     final noteRes = await db.getOptional(
       'SELECT data FROM app_note WHERE id = ? LIMIT 1;',
       [id.toString()],
     );
 
     if (noteRes == null) {
+      log.warning('note $id not found');
       return null;
     }
 
@@ -85,10 +69,11 @@ class NotesStorage {
   }
 
   Future<void> noteSave(Note note) async {
+    log.finer("saving note $note");
     await _noteSave(db, note);
   }
 
-  Future<void> _noteDelete(SqliteWriteContext tx, Id id) async {
+  static Future<void> _noteDelete(SqliteWriteContext tx, Id id) async {
     final res = await tx.execute(
       'DELETE FROM app_note WHERE id = ? RETURNING id;',
       [id.toString()],
@@ -100,56 +85,75 @@ class NotesStorage {
   }
 
   Future<void> noteDelete(Id id) async {
+    log.finer("deleting note $id");
     return await _noteDelete(db, id);
   }
 
-  Future<Tags> tagsGet() async {
-    final tagsRes = await db.getOptional("SELECT data FROM app_tags LIMIT 1;");
+  Future<Tag?> tagGet(String name) async {
+    log.finer('getting tag $name');
+    final row = await db.getOptional(
+      'SELECT data FROM app_tag WHERE name = ? LIMIT 1;',
+      [name],
+    );
 
-    if (tagsRes == null) {
-      throw Exception('tags were not initialized');
+    if (row == null) {
+      log.warning('tag $name not found');
+      return null;
+    }
+    return Tag.fromJson(jsonDecode(row['data']));
+  }
+
+  static Future<void> _tagSave(SqliteWriteContext tx, Tag tag) async {
+    await tx.execute(
+      'INSERT OR REPLACE INTO app_tag (name, data) VALUES (?, ?);',
+      [tag.name, jsonEncode(tag)],
+    );
+  }
+
+  Future<void> tagSave(Tag tag) async {
+    log.fine('saving tag $tag');
+    _tagSave(db, tag);
+  }
+
+  static Future<void> _tagDelete(SqliteWriteContext tx, String tagName) async {
+    final row = await tx.execute(
+      'DELETE FROM app_tag WHERE id = ? RETURNING id;',
+      [tagName],
+    );
+    if (row.isEmpty) {
+      // should this throw or just be asserted?
+      throw ItemNotFoundException('tag with name "$tagName"');
+    }
+  }
+
+  Future<void> tagDelete(String tagName) async {
+    log.fine('deleting tag $tagName');
+    _tagDelete(db, tagName);
+  }
+
+  Future<void> dumpPrint() async {
+    print('-----DATABASE DUMP START---');
+
+    final noteRows = await db.getAll('SELECT id FROM app_note');
+    print('${noteRows.length} notes.');
+    for (final row in noteRows) {
+      final id = Id.fromString(row['id']);
+      final note = await noteGet(id);
+      if (note != null) {
+        print('  $note');
+      }
     }
 
-    return Tags.fromMap(jsonDecode(tagsRes['data']));
-  }
-
-  static Future<void> _tagsSave(SqliteWriteContext tx, Tags tags) async {
-    await tx.execute('UPDATE app_tags SET data = ?;', [
-      jsonEncode(tags.toMap()),
-    ]);
-  }
-
-  Future<void> tagsSave(Tags tags) async {
-    _tagsSave(db, tags);
-  }
-
-  Future<void> noteConflictResolve(Id id) async {
-    // the conflicts are actually stored on the note
-    // its like a pointer, saying that this clashes with that in the UI view
-    // then this event will correct the note conflict!
-  }
-
-  Future<void> tagActionOnNote(Id noteId, String tag, TagAction action) async {
-    // TODO: could implement in the same transaction, these global gets need a tx
-    final note = await noteGet(noteId);
-    if (note == null) {
-      throw ArgumentError('note $noteId does not exist', 'noteId');
-    }
-    final tags = await tagsGet();
-
-    switch (action) {
-      case TagAction.add:
-        note.tags.add(tag);
-        tags.add(tag);
-      case TagAction.remove:
-        note.tags.remove(tag);
-        tags.remove(tag);
+    final tagRows = await db.getAll('SELECT name FROM app_tag');
+    print('${tagRows.length} tags.');
+    for (final row in tagRows) {
+      final tagName = row['name'];
+      final tag = await tagGet(tagName);
+      if (tag != null) {
+        print('  $tag');
+      }
     }
 
-    // serialize both
-    await db.writeTransaction((tx) async {
-      _noteSave(tx, note);
-      _tagsSave(tx, tags);
-    });
+    print('-----DATABASE DUMP END-----');
   }
 }

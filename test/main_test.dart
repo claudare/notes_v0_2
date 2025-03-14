@@ -9,52 +9,63 @@ import 'package:notes_v0_2/common/id.dart';
 import 'package:notes_v0_2/system/models.dart';
 import 'package:notes_v0_2/test_utils.dart';
 import 'package:test/test.dart';
+import 'package:logging/logging.dart';
+
+// Logger.root.level = Level.ALL; // defaults to Level.INFO
+// Logger.root.onRecord.listen((record) {
+//   print('${record.level.name}: ${record.time}: ${record.message}');
+// });
 
 void main() async {
+  Logger.root.level = Level.SEVERE;
+  Logger.root.onRecord.listen((record) {
+    print(
+      '[${record.loggerName}] ${record.level.name}: ${record.time}: ${record.message}',
+    );
+  });
   group('Event Tests', () {
-    late TestAllSystemsInOne s; // s stands for all Systems
+    late TestAllSystemsInOne aio; // s stands for all Systems
 
     setUp(() async {
-      s = TestAllSystemsInOne();
-
-      await s.init();
+      aio = TestAllSystemsInOne();
+      await aio.init();
     });
 
     tearDown(() async {
-      await s.deinit();
+      await aio.deinit();
     });
 
     test('Create a new note stream', () async {
-      final noteId = s.sysRepo.newId('note');
+      final noteId = aio.sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
       final noteStreamId = Stream.id(noteId);
 
       await testSaveEventLogAndResolve(
-        s.sysRepo,
-        s.notesResolver,
+        aio.sysRepo,
+        aio.notesResolver,
         EventLogMinimal(
           stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
         ),
       );
-      await s.notesRepo.flush();
+      await aio.notesRepo.flush();
 
       // Verify that the note has been created
-      final note = await s.notesRepo.noteGet(noteId);
+      final note = await aio.notesStorage.noteGet(noteId);
       expect(note, isNotNull);
     });
 
     test('Edit the body of a note', () async {
-      final noteId = s.sysRepo.newId('note');
+      final noteId = aio.sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
       final noteStreamId = Stream.id(noteId);
 
       // First create the note stream
       await testSaveEventLogAndResolve(
-        s.sysRepo,
-        s.notesResolver,
+        aio.sysRepo,
+        aio.notesResolver,
         EventLogMinimal(
           stream: globalStreamId,
           event: NoteNewStreamCreated(streamId: noteId),
@@ -63,17 +74,17 @@ void main() async {
 
       // Edit the note body
       await testSaveEventLogAndResolve(
-        s.sysRepo,
-        s.notesResolver,
+        aio.sysRepo,
+        aio.notesResolver,
         EventLogMinimal(
           stream: noteStreamId,
           event: NoteBodyEditedFull(value: "hello world"),
         ),
       );
-      await s.notesRepo.flush();
+      await aio.notesRepo.flush();
 
       // Verify that the note body has been updated
-      final note = await s.notesRepo.noteGet(noteId);
+      final note = await aio.notesRepo.noteGet(noteId);
 
       expect(note, isNotNull);
       expect(note.body, equals("hello world"));
@@ -81,44 +92,47 @@ void main() async {
       expect(note.editedAt.compareTo(note.createdAt), equals(1));
     });
 
-    // test('Assign a tag to a note', () async {
-    //   final noteId = all.sysRepo.newId('note');
+    test('Assign a tag to a note', () async {
+      final noteId = aio.sysRepo.newId('note');
 
-    //   final globalStreamId = Stream.named("global");
-    //   final noteStreamId = Stream.id(noteId);
+      final globalStreamId = Stream.named("global");
+      final noteStreamId = Stream.id(noteId);
 
-    //   // First create the note stream
-    //   await testSaveEventLogAndResolve(
-    //     all.sysRepo,
-    //     all.notesResolver,
-    //     EventLogMinimal(
-    //       stream: globalStreamId,
-    //       event: NoteNewStreamCreated(streamId: noteId),
-    //     ),
-    //   );
+      // First create the note stream
+      await testSaveEventLogAndResolve(
+        aio.sysRepo,
+        aio.notesResolver,
+        EventLogMinimal(
+          stream: globalStreamId,
+          event: NoteNewStreamCreated(streamId: noteId),
+        ),
+      );
+      await aio.notesRepo.flush();
 
-    //   // Assign a tag to the note
-    //   const tagName = 'testTag';
-    //   await testSaveEventLogAndResolve(
-    //     all.sysRepo,
-    //     all.notesResolver,
-    //     EventLogMinimal(
-    //       stream: noteStreamId,
-    //       event: TagAssignedToNote(tagName: tagName),
-    //     ),
-    //   );
+      // Assign a tag to the note
+      const tagName = 'testTag';
+      await testSaveEventLogAndResolve(
+        aio.sysRepo,
+        aio.notesResolver,
+        EventLogMinimal(
+          stream: noteStreamId,
+          event: TagAssignedToNote(tagName: tagName),
+        ),
+      );
+      await aio.notesRepo.flush();
 
-    //   // Verify that the tag has been assigned to the note
-    //   final note = await all.notesRepo.noteGet(noteId);
-    //   expect(note, isNotNull);
-    //   expect(note.tags.length, equals(1));
-    //   expect(note.tags.contains(tagName), isTrue);
+      // Verify that the tag has been assigned to the note
+      final note = await aio.notesStorage.noteGet(noteId);
+      expect(note, isNotNull);
+      expect(note!.tags.length, equals(1));
+      expect(note.tags.contains(tagName), isTrue);
 
-    //   // Verify that the tag exists in the general list
-    //   final tags = await all.notesRepo.tagsGet();
-    //   expect(tags.toList().length, equals(1));
-    //   expect(tags.toList().contains(tagName), isTrue);
-    // });
+      // Verify that the tag exists in the general list
+      final tags = await aio.notesStorage.tagGet(tagName);
+      expect(tags, isNotNull);
+      expect(tags!.count, equals(1));
+      expect(tags.assignedToNotes.contains(noteId), isTrue);
+    });
 
     // test('Unassign a tag from a note', () async {
     //   final noteId = all.sysRepo.newId('note');
