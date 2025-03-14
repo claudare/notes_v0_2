@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 
-import 'package:notes_v0_2/id.dart';
+import 'package:notes_v0_2/common/id.dart';
 
 // currently there are no base58 tests...
 // but it works as all of this works

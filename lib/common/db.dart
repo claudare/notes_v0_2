@@ -3,13 +3,13 @@ import 'dart:math';
 
 import 'package:sqlite_async/sqlite_async.dart';
 
-class Database {
+class Db {
   late SqliteDatabase db;
   String? tempPath;
 
-  Database(String path) : db = SqliteDatabase(path: path);
+  Db(String path) : db = SqliteDatabase(path: path);
 
-  Database.temporary() {
+  Db.temporary() {
     tempPath = _tempDbPath();
     db = SqliteDatabase(path: tempPath);
   }

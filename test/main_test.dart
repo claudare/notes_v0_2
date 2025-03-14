@@ -1,30 +1,30 @@
-import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/db.dart';
-import 'package:notes_v0_2/stream.dart';
-import 'package:notes_v0_2/system_db.dart';
-import 'package:notes_v0_2/events.dart';
-import 'package:notes_v0_2/id.dart';
-import 'package:notes_v0_2/system_models.dart';
-import 'package:notes_v0_2/utils.dart';
+import 'package:notes_v0_2/notes/repo.dart';
+import 'package:notes_v0_2/common/db.dart';
+import 'package:notes_v0_2/common/stream.dart';
+import 'package:notes_v0_2/system/repo.dart';
+import 'package:notes_v0_2/notes/events.dart';
+import 'package:notes_v0_2/common/id.dart';
+import 'package:notes_v0_2/system/models.dart';
+import 'package:notes_v0_2/system/utils.dart';
 import 'package:test/test.dart';
 
 void main() async {
   group('Event Tests', () {
-    late Database databaseSystem;
-    late Database databaseApp;
-    late SystemDb systemDb;
-    late AppDb appDb;
+    late Db databaseSystem;
+    late Db databaseApp;
+    late SystemRepo systemDb;
+    late NotesRepo appDb;
 
     setUp(() async {
-      databaseSystem = Database.temporary();
-      databaseApp = Database.temporary();
+      databaseSystem = Db.temporary();
+      databaseApp = Db.temporary();
 
-      systemDb = SystemDb(
+      systemDb = SystemRepo(
         databaseSystem.db,
         deviceId: DeviceId(0),
       ); // device id 0 is 111
       await systemDb.init();
-      appDb = AppDb(databaseApp.db);
+      appDb = NotesRepo(databaseApp.db);
       await appDb.migrate();
     });
 

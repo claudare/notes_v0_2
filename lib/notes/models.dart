@@ -1,4 +1,4 @@
-import 'package:notes_v0_2/id.dart';
+import 'package:notes_v0_2/common/id.dart';
 
 class Note {
   Id noteId;

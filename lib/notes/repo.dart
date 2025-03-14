@@ -1,9 +1,8 @@
 import 'dart:convert';
 // import 'dart:developer' as dev;
 
-import 'package:notes_v0_2/app_models.dart';
-import 'package:notes_v0_2/id.dart';
-import 'package:notes_v0_2/system_db.dart';
+import 'package:notes_v0_2/notes/models.dart';
+import 'package:notes_v0_2/common/id.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
@@ -33,7 +32,7 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
 
 // separate db  class for implementing application logic
 
-class AppDb {
+class NotesRepo {
   SqliteDatabase db;
 
   bool loggingEnabled;
@@ -46,7 +45,7 @@ class AppDb {
     }
   }
 
-  AppDb(this.db, {this.loggingEnabled = false});
+  NotesRepo(this.db, {this.loggingEnabled = false});
 
   Future<void> migrate() async {
     await _migrations.migrate(db);

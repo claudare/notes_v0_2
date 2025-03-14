@@ -1,22 +1,24 @@
-import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/app_models.dart';
-import 'package:notes_v0_2/stream.dart';
-import 'package:notes_v0_2/id.dart';
+import 'package:notes_v0_2/notes/repo.dart';
+import 'package:notes_v0_2/notes/models.dart';
+import 'package:notes_v0_2/common/stream.dart';
+import 'package:notes_v0_2/common/id.dart';
+import 'package:notes_v0_2/system/models.dart';
 // following https://dart.dev/language/class-modifiers#sealed
 
-sealed class Event {
-  static final Map<String, Event Function(Map<String, dynamic>)> _parsers = {
-    NoteNewStreamCreated._type: NoteNewStreamCreated.fromMap,
-    NoteBodyEditedFull._type: NoteBodyEditedFull.fromMap,
-    NoteArchived._type: NoteArchived.fromMap,
-    TagAssignedToNote._type: TagAssignedToNote.fromMap,
-    TagUnassignedToNote._type: TagUnassignedToNote.fromMap,
-    TestEvent._type: TestEvent.fromMap,
-  };
+sealed class NotesEvent extends AnyEvent<NotesRepo> {
+  static final Map<String, NotesEvent Function(Map<String, dynamic>)> _parsers =
+      {
+        NoteNewStreamCreated._type: NoteNewStreamCreated.fromMap,
+        NoteBodyEditedFull._type: NoteBodyEditedFull.fromMap,
+        NoteArchived._type: NoteArchived.fromMap,
+        TagAssignedToNote._type: TagAssignedToNote.fromMap,
+        TagUnassignedToNote._type: TagUnassignedToNote.fromMap,
+        TestEvent._type: TestEvent.fromMap,
+      };
 
-  const Event();
+  const NotesEvent();
 
-  factory Event.fromMap(Map<String, dynamic> map) {
+  factory NotesEvent.fromMap(Map<String, dynamic> map) {
     final eventType = map['_type'];
 
     if (_parsers.containsKey(eventType)) {
@@ -25,14 +27,9 @@ sealed class Event {
 
     throw ArgumentError('Unknown event type: $eventType');
   }
-
-  Map<String, dynamic> toMap();
-
-  /// inStream is current stream id that is being written to
-  Future<void> apply(Stream inStream, AppDb db) async => {};
 }
 
-final class NoteNewStreamCreated extends Event {
+final class NoteNewStreamCreated extends NotesEvent {
   final Id streamId;
 
   const NoteNewStreamCreated({required this.streamId});
@@ -45,7 +42,7 @@ final class NoteNewStreamCreated extends Event {
   // }
 
   @override
-  Future<void> apply(Stream inStream, AppDb db) async {
+  Future<void> apply(Stream inStream, NotesRepo db) async {
     inStream.throwIfNotNamedWithName("global");
 
     // create a new note, whos id is part of the stream
@@ -65,13 +62,13 @@ final class NoteNewStreamCreated extends Event {
   };
 }
 
-class NoteBodyEditedFull extends Event {
+class NoteBodyEditedFull extends NotesEvent {
   final String value;
 
   const NoteBodyEditedFull({required this.value});
 
   @override
-  Future<void> apply(Stream inStream, AppDb db) async {
+  Future<void> apply(Stream inStream, NotesRepo db) async {
     final noteId = inStream.getIdInScopeOrThrow("note");
 
     await db.noteContentUpdate(noteId, fullBody: value);
@@ -89,11 +86,11 @@ class NoteBodyEditedFull extends Event {
 // soft delete only for now
 // this "reorders" this event into the "archived" list
 // there are 3 ordering lists: main, archived, pinned
-class NoteArchived extends Event {
+class NoteArchived extends NotesEvent {
   const NoteArchived();
 
   @override
-  Future<void> apply(Stream inStream, AppDb db) async {
+  Future<void> apply(Stream inStream, NotesRepo db) async {
     throw UnimplementedError();
   }
 
@@ -109,13 +106,13 @@ class NoteArchived extends Event {
 /// tags are not created nor destroyed
 /// they are simply assigned. the logic of this handler (apply)
 /// creates and removes them from general list
-class TagAssignedToNote extends Event {
+class TagAssignedToNote extends NotesEvent {
   final String tagName;
 
   TagAssignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(Stream inStream, AppDb db) async {
+  Future<void> apply(Stream inStream, NotesRepo db) async {
     final noteId = inStream.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.add);
   }
@@ -130,13 +127,13 @@ class TagAssignedToNote extends Event {
   Map<String, dynamic> toMap() => {'_type': _type, 'tagName': tagName};
 }
 
-class TagUnassignedToNote extends Event {
+class TagUnassignedToNote extends NotesEvent {
   final String tagName;
 
   TagUnassignedToNote({required this.tagName});
 
   @override
-  Future<void> apply(Stream inStream, AppDb db) async {
+  Future<void> apply(Stream inStream, NotesRepo db) async {
     final noteId = inStream.getIdInScopeOrThrow("note");
     await db.tagActionOnNote(noteId, tagName, TagAction.remove);
   }
@@ -151,13 +148,13 @@ class TagUnassignedToNote extends Event {
   Map<String, dynamic> toMap() => {'_type': _type, 'tagName': tagName};
 }
 
-class TestEvent extends Event {
+class TestEvent extends NotesEvent {
   final String value;
 
   TestEvent({required this.value});
 
   @override
-  Future<void> apply(Stream inStream, AppDb db) async {
+  Future<void> apply(Stream inStream, NotesRepo db) async {
     throw Exception("cannot apply test event");
   }
 

@@ -1,10 +1,13 @@
-import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/system_db.dart';
-import 'package:notes_v0_2/system_models.dart';
+import 'package:notes_v0_2/notes/repo.dart';
+import 'package:notes_v0_2/system/models.dart';
+import 'package:notes_v0_2/system/repo.dart';
 
+// this is the function which crosses the system and app domain
+// will need to think hard where to place it,
+// i think resolver that takes in a system will be the best
 Future<void> appendEventLogMinimalAndApply(
-  SystemDb systemDb,
-  AppDb appDb,
+  SystemRepo systemDb,
+  NotesRepo appDb,
   EventLogMinimal min,
 ) async {
   await systemDb.eventLogAppend(min);

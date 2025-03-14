@@ -1,12 +1,22 @@
 import 'dart:convert';
 
-import 'package:notes_v0_2/events.dart';
-import 'package:notes_v0_2/stream.dart';
+import 'package:notes_v0_2/notes/events.dart';
+import 'package:notes_v0_2/common/stream.dart';
+
+abstract class AnyEvent<Resolver> {
+  const AnyEvent();
+
+  AnyEvent.fromMap(Map<String, dynamic> map);
+
+  Map<String, dynamic> toMap();
+
+  Future<void> apply(Stream inStream, Resolver anyRepo) async => {};
+}
 
 /// minimal information needed for resolving of the event
 class EventLogMinimal {
   Stream stream;
-  Event event;
+  AnyEvent event;
 
   EventLogMinimal({required this.stream, required this.event});
 
@@ -22,7 +32,7 @@ class EventLog {
   int deviceSeq;
   Stream streamName;
   int streamSeq;
-  Event event; // could use Uint8List here?
+  AnyEvent event; // could use Uint8List here?
 
   EventLog({
     required this.eventUid,
@@ -39,6 +49,6 @@ class EventLog {
       deviceSeq = map['device_seq'],
       streamName = Stream.fromString(map['stream_name']),
       streamSeq = map['stream_seq'],
-      event = Event.fromMap(jsonDecode(map['data']));
+      event = NotesEvent.fromMap(jsonDecode(map['data']));
   // event = Event.parseEvent(jsonDecode(map['data']));
 }

@@ -1,5 +1,5 @@
-import 'package:notes_v0_2/id.dart';
-import 'package:notes_v0_2/stream.dart';
+import 'package:notes_v0_2/common/id.dart';
+import 'package:notes_v0_2/common/stream.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-import 'package:notes_v0_2/id.dart';
+import 'package:notes_v0_2/common/id.dart';
 
 // this is either a constant global name
 // or an id name

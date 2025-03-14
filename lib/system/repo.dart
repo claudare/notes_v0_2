@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:notes_v0_2/events.dart';
-import 'package:notes_v0_2/id.dart';
-import 'package:notes_v0_2/stream.dart';
-import 'package:notes_v0_2/sequence.dart';
-import 'package:notes_v0_2/system_models.dart';
+import 'package:notes_v0_2/notes/events.dart';
+import 'package:notes_v0_2/common/id.dart';
+import 'package:notes_v0_2/common/stream.dart';
+import 'package:notes_v0_2/common/sequence.dart';
+import 'package:notes_v0_2/system/models.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
@@ -45,7 +45,7 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
   }),
 );
 
-class SystemDb {
+class SystemRepo {
   SqliteDatabase db;
   String? tempPath;
 
@@ -61,7 +61,7 @@ class SystemDb {
     }
   }
 
-  SystemDb(this.db, {required DeviceId deviceId, this.loggingEnabled = false})
+  SystemRepo(this.db, {required DeviceId deviceId, this.loggingEnabled = false})
     : _idGenerator = IdGenerator(deviceId);
 
   Future<void> init() async {

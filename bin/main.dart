@@ -1,20 +1,20 @@
-import 'package:notes_v0_2/app_db.dart';
-import 'package:notes_v0_2/db.dart';
-import 'package:notes_v0_2/stream.dart';
-import 'package:notes_v0_2/system_db.dart';
-import 'package:notes_v0_2/events.dart';
-import 'package:notes_v0_2/id.dart';
-import 'package:notes_v0_2/system_models.dart';
-import 'package:notes_v0_2/utils.dart';
+import 'package:notes_v0_2/notes/repo.dart';
+import 'package:notes_v0_2/common/db.dart';
+import 'package:notes_v0_2/common/stream.dart';
+import 'package:notes_v0_2/system/repo.dart';
+import 'package:notes_v0_2/notes/events.dart';
+import 'package:notes_v0_2/common/id.dart';
+import 'package:notes_v0_2/system/models.dart';
+import 'package:notes_v0_2/system/utils.dart';
 
 // run with dart --enable-asserts bin/main.dart
 void main() async {
-  final databaseSystem = Database.temporary();
-  final systemDb = SystemDb(databaseSystem.db, deviceId: DeviceId(0));
+  final databaseSystem = Db.temporary();
+  final systemDb = SystemRepo(databaseSystem.db, deviceId: DeviceId(0));
   await systemDb.init();
 
-  final databaseApp = Database.temporary();
-  final appDb = AppDb(databaseApp.db, loggingEnabled: true);
+  final databaseApp = Db.temporary();
+  final appDb = NotesRepo(databaseApp.db, loggingEnabled: true);
 
   try {
     await appDb.migrate();
