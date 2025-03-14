@@ -1,4 +1,5 @@
 import 'package:notes_v0_2/app_db.dart';
+import 'package:notes_v0_2/db.dart';
 import 'package:notes_v0_2/stream.dart';
 import 'package:notes_v0_2/system_db.dart';
 import 'package:notes_v0_2/events.dart';
@@ -9,20 +10,27 @@ import 'package:test/test.dart';
 
 void main() async {
   group('Event Tests', () {
+    late Database databaseSystem;
+    late Database databaseApp;
     late SystemDb systemDb;
     late AppDb appDb;
 
     setUp(() async {
-      systemDb = SystemDb.temporary(
+      databaseSystem = Database.temporary();
+      databaseApp = Database.temporary();
+
+      systemDb = SystemDb(
+        databaseSystem.db,
         deviceId: DeviceId(0),
       ); // device id 0 is 111
       await systemDb.init();
-      appDb = AppDb(systemDb.db);
+      appDb = AppDb(databaseApp.db);
       await appDb.migrate();
     });
 
     tearDown(() async {
-      await systemDb.deinit();
+      await databaseSystem.deinit();
+      await databaseApp.deinit();
     });
 
     test('Create a new note stream', () async {

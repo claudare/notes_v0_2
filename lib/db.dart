@@ -1,10 +1,32 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:sqlite_async/sqlite_async.dart';
+
+class Database {
+  late SqliteDatabase db;
+  String? tempPath;
+
+  Database(String path) : db = SqliteDatabase(path: path);
+
+  Database.temporary() {
+    tempPath = _tempDbPath();
+    db = SqliteDatabase(path: tempPath);
+  }
+
+  Future<void> deinit() async {
+    await db.close();
+
+    if (tempPath != null) {
+      _tempDbCleanup(tempPath!);
+    }
+  }
+}
+
 const _tempDir = '/tmp/sqlite-db';
 
 //https://github.com/powersync-ja/sqlite_async.dart/discussions/13
-String tempDbPath() {
+String _tempDbPath() {
   final random = Random.secure();
   final chars =
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -17,7 +39,7 @@ String tempDbPath() {
   return '$_tempDir/$filename';
 }
 
-Future<void> tempDbCleanup(String path) async {
+Future<void> _tempDbCleanup(String path) async {
   try {
     await File(path).delete();
   } on PathNotFoundException {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:notes_v0_2/db.dart';
 import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/stream.dart';
@@ -9,12 +10,15 @@ import 'package:test/test.dart';
 
 void main() {
   group('EventLogGetAllForStream', () {
+    late Database databaseSystem;
     late SystemDb systemDb;
     late Stream stream;
 
     setUp(() async {
+      databaseSystem = Database.temporary();
+
       final deviceId = DeviceId(123);
-      systemDb = SystemDb.temporary(deviceId: deviceId);
+      systemDb = SystemDb(databaseSystem.db, deviceId: deviceId);
       await systemDb.init();
 
       // Create a test stream
@@ -29,7 +33,7 @@ void main() {
     });
 
     tearDown(() async {
-      await systemDb.deinit();
+      await databaseSystem.deinit();
     });
 
     test('should return all events for a given stream', () async {

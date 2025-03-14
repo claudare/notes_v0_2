@@ -1,4 +1,5 @@
 import 'package:notes_v0_2/app_db.dart';
+import 'package:notes_v0_2/db.dart';
 import 'package:notes_v0_2/stream.dart';
 import 'package:notes_v0_2/system_db.dart';
 import 'package:notes_v0_2/events.dart';
@@ -8,12 +9,12 @@ import 'package:notes_v0_2/utils.dart';
 
 // run with dart --enable-asserts bin/main.dart
 void main() async {
-  final systemDb = SystemDb.temporary(
-    deviceId: DeviceId(0),
-  ); // device id 0 is 111
+  final databaseSystem = Database.temporary();
+  final systemDb = SystemDb(databaseSystem.db, deviceId: DeviceId(0));
   await systemDb.init();
 
-  final appDb = AppDb(systemDb.db, loggingEnabled: true);
+  final databaseApp = Database.temporary();
+  final appDb = AppDb(databaseApp.db, loggingEnabled: true);
 
   try {
     await appDb.migrate();
@@ -44,6 +45,7 @@ void main() async {
 
     print("latest note state $note");
   } finally {
-    await systemDb.deinit();
+    await databaseSystem.deinit();
+    await databaseApp.deinit();
   }
 }

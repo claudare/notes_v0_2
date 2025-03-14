@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:notes_v0_2/events.dart';
 import 'package:notes_v0_2/id.dart';
 import 'package:notes_v0_2/stream.dart';
-import 'package:notes_v0_2/db_utils.dart';
 import 'package:notes_v0_2/sequence.dart';
 import 'package:notes_v0_2/system_models.dart';
 import 'package:sqlite_async/sqlite_async.dart';
@@ -47,7 +46,7 @@ final _migrations = SqliteMigrations(migrationTable: "sys_migrations")..add(
 );
 
 class SystemDb {
-  late SqliteDatabase db;
+  SqliteDatabase db;
   String? tempPath;
 
   final IdGenerator _idGenerator;
@@ -62,21 +61,8 @@ class SystemDb {
     }
   }
 
-  SystemDb(
-    String path, {
-    required DeviceId deviceId,
-    this.loggingEnabled = false,
-  }) : _idGenerator = IdGenerator(deviceId) {
-    // Open database from a file
-    db = SqliteDatabase(path: path);
-    throw UnimplementedError("too early for this");
-  }
-
-  SystemDb.temporary({required DeviceId deviceId, this.loggingEnabled = false})
-    : _idGenerator = IdGenerator(deviceId) {
-    tempPath = tempDbPath();
-    db = SqliteDatabase(path: tempPath);
-  }
+  SystemDb(this.db, {required DeviceId deviceId, this.loggingEnabled = false})
+    : _idGenerator = IdGenerator(deviceId);
 
   Future<void> init() async {
     await _migrations.migrate(db);
@@ -112,14 +98,6 @@ class SystemDb {
       ],
     );
     log("updated sequences in db $res");
-  }
-
-  Future<void> deinit() async {
-    await db.close();
-
-    if (tempPath != null) {
-      tempDbCleanup(tempPath!);
-    }
   }
 
   DeviceId get thisDeviceId => _idGenerator.deviceId;
