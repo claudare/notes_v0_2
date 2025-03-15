@@ -288,11 +288,18 @@ class IdGenerator {
 }
 
 class TestIdGenerator {
-  static Id newTestId(String scope) {
+  static Id newIdTimestamped(String scope) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final deviceId = 0;
     final currentCount = 0;
     return Id.fromParts(scope, timestamp, deviceId, currentCount);
+  }
+
+  static Id newIdNumber(int value) {
+    final timestamp = 0;
+    final deviceId = 0;
+    final currentCount = value;
+    return Id.fromParts("test", timestamp, deviceId, currentCount);
   }
 }
 

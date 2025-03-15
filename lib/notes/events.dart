@@ -1,6 +1,3 @@
-import 'package:notes_v0_2/notes/storage.dart';
-import 'package:notes_v0_2/notes/models.dart';
-import 'package:notes_v0_2/common/stream.dart';
 import 'package:notes_v0_2/common/id.dart';
 import 'package:notes_v0_2/system/models.dart';
 // following https://dart.dev/language/class-modifiers#sealed
@@ -10,6 +7,7 @@ sealed class NotesEvent extends AnyEvent {
       {
         NoteNewStreamCreated._type: NoteNewStreamCreated.fromMap,
         NoteBodyEditedFull._type: NoteBodyEditedFull.fromMap,
+        NoteReordered._type: NoteReordered.fromMap,
         NoteArchived._type: NoteArchived.fromMap,
         TagAssignedToNote._type: TagAssignedToNote.fromMap,
         TagUnassignedToNote._type: TagUnassignedToNote.fromMap,
@@ -61,9 +59,31 @@ class NoteBodyEditedFull extends NotesEvent {
   Map<String, dynamic> toMap() => {'_type': _type, 'value': value};
 }
 
-// soft delete only for now
-// this "reorders" this event into the "archived" list
-// there are 3 ordering lists: main, archived, pinned
+class NoteReordered extends NotesEvent {
+  final Id noteId;
+  // if beforeNoteId is null, it means it goes to the top
+  final Id? beforeNoteId;
+
+  const NoteReordered({required this.noteId, required this.beforeNoteId});
+
+  static const String _type = 'noteReordered';
+
+  @override
+  NoteReordered.fromMap(Map<String, dynamic> json)
+    : noteId = Id.fromString(json['noteId']),
+      beforeNoteId =
+          json['beforeNoteId'] != null
+              ? Id.fromString(json['beforeNoteId'])
+              : null;
+
+  @override
+  Map<String, dynamic> toMap() => {
+    '_type': _type,
+    'noteId': noteId.toString(),
+    'beforeNoteId': beforeNoteId?.toString(),
+  };
+}
+
 class NoteArchived extends NotesEvent {
   const NoteArchived();
 

@@ -23,6 +23,9 @@ class NotesResolver {
         note.editedAt = DateTime.now();
 
         break;
+      case NoteReordered():
+        throw UnimplementedError();
+        break;
       case NoteArchived():
         throw UnimplementedError();
         break;
