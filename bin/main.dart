@@ -22,23 +22,17 @@ void main() async {
 
     // sysRepo.eventLogAppend(EventLogMinimal(stream:globalStreamId, event:))
 
-    await testSaveEventLogAndResolve(
-      aio.sysRepo,
-      aio.notesResolver,
-      EventLogMinimal(
-        stream: globalStreamId,
-        event: NoteNewStreamCreated(streamId: noteId),
-      ),
+    await testApplyEventLog(
+      aio,
+      EventLogMinimal(globalStreamId, NoteNewStreamCreated(streamId: noteId)),
+      flush: false,
     );
-    await aio.notesRepo.flush();
-    await testSaveEventLogAndResolve(
-      aio.sysRepo,
-      aio.notesResolver,
-      EventLogMinimal(
-        stream: noteStreamId,
-        event: NoteBodyEditedFull(value: "hello world"),
-      ),
+    await testApplyEventLog(
+      aio,
+      EventLogMinimal(noteStreamId, NoteBodyEditedFull(value: "hello world")),
+      flush: false,
     );
+
     await aio.notesRepo.flush();
 
     var note = await aio.notesStorage.noteGet(noteId);

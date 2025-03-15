@@ -4,11 +4,11 @@ import 'dart:collection';
 
 import 'package:notes_v0_2/common/id.dart';
 
-final class _EntryOrdering extends LinkedListEntry<_EntryOrdering> {
+final class _EntryOrder extends LinkedListEntry<_EntryOrder> {
   final Id id;
   final Category category;
 
-  _EntryOrdering(this.id, this.category);
+  _EntryOrder(this.id, this.category);
 
   @override
   String toString() {
@@ -18,18 +18,29 @@ final class _EntryOrdering extends LinkedListEntry<_EntryOrdering> {
 
 enum Category { main, pinned }
 
-class NoteOrdering {
-  final Map<Id, _EntryOrdering> _lookup;
-  final LinkedList<_EntryOrdering> main;
-  final LinkedList<_EntryOrdering> pinned;
+class NoteOrder {
+  final Map<Id, _EntryOrder> _lookup;
+  final LinkedList<_EntryOrder> main;
+  final LinkedList<_EntryOrder> pinned;
 
-  NoteOrdering()
+  NoteOrder()
     : _lookup = {},
-      main = LinkedList<_EntryOrdering>(),
-      pinned = LinkedList<_EntryOrdering>();
+      main = LinkedList<_EntryOrder>(),
+      pinned = LinkedList<_EntryOrder>();
+
+  /// inefficient clone method
+  NoteOrder clone() {
+    return NoteOrder.fromJson(toJson());
+  }
+
+  clear() {
+    _lookup.clear();
+    main.clear();
+    pinned.clear();
+  }
 
   void append(Id id, Category cat) {
-    final entry = _EntryOrdering(id, cat);
+    final entry = _EntryOrder(id, cat);
     final ll = _getLinkedList(cat);
 
     _lookup[id] = entry;
@@ -37,7 +48,6 @@ class NoteOrdering {
   }
 
   // the item will be moved to another category and will always go on the top
-
   void moveToOtherCategory(Id id, Category otherCat) {
     final entry = _lookup[id];
     if (entry == null) {
@@ -98,7 +108,7 @@ class NoteOrdering {
     return ll.length;
   }
 
-  LinkedList<_EntryOrdering> _getLinkedList(Category cat) {
+  LinkedList<_EntryOrder> _getLinkedList(Category cat) {
     return switch (cat) {
       Category.main => main,
       Category.pinned => pinned,
@@ -107,19 +117,18 @@ class NoteOrdering {
 
   Map<String, dynamic> toJson() {
     return {
-      'main':
-          main.map((e) => e.id.toString()).toList(), //toList(growable: false),
+      'main': main.map((e) => e.id.toString()).toList(),
       'pinned': pinned.map((e) => e.id.toString()).toList(),
     };
   }
 
-  factory NoteOrdering.fromJson(Map<String, dynamic> json) {
+  factory NoteOrder.fromJson(Map<String, dynamic> json) {
     final mainList =
         (json['main'] as List<dynamic>).map((e) => Id.fromString(e)).toList();
     final pinnedList =
         (json['pinned'] as List<dynamic>).map((e) => Id.fromString(e)).toList();
 
-    final res = NoteOrdering();
+    final res = NoteOrder();
 
     for (final id in mainList) {
       res.append(id, Category.main);

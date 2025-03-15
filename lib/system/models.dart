@@ -9,6 +9,8 @@ abstract class AnyEvent {
   AnyEvent.fromMap(Map<String, dynamic> map);
 
   Map<String, dynamic> toMap();
+
+  // EventLogMinimal toLog();
 }
 
 /// minimal information needed for resolving of the event
@@ -16,7 +18,7 @@ class EventLogMinimal {
   Stream stream;
   AnyEvent event;
 
-  EventLogMinimal({required this.stream, required this.event});
+  EventLogMinimal(this.stream, this.event);
 
   // this should not be here
   // pipeThrough(DbApp db) {

@@ -9,6 +9,61 @@ import 'package:notes_v0_2/notes/model_ordering.dart';
 import 'package:notes_v0_2/notes/models.dart';
 import 'package:notes_v0_2/notes/storage.dart';
 
+// how each one of this modules is done
+// in order not to pollute [NotesRepo] with lots of variables
+abstract class _GroupImpl {
+  Future<void> flush(NotesMutationTransaction tx) async {}
+  // this is done after flush. Usually touch maps are removed here
+  void postFlush();
+  // Undo any changes (revert modifications)
+  // This is called when transaction fails, and state of the cache must be rolled back to
+  // lastest storage representation
+  // Usually, the referenced items are purched from the cache, so that they will be queried from db again.
+  void purgeChanges();
+}
+
+class _NotesOrderingImpl extends _GroupImpl {
+  final NotesStorage _storage;
+
+  NoteOrder? _latest; // the actual upto-date copy of the database
+  NoteOrder? _newest; // a copy is made when modifications are requested
+
+  _NotesOrderingImpl(this._storage);
+
+  // ref means get a deference copy
+  Future<NoteOrder> ref() async {
+    if (_newest != null) {
+      return _newest!;
+    }
+
+    _latest = await _storage.noteOrderGet();
+    _newest = _latest!.clone();
+
+    return _newest!;
+  }
+
+  @override
+  Future<void> flush(NotesMutationTransaction tx) async {
+    if (_newest == null) {
+      return;
+    }
+    await tx.noteOrderSave(_newest!);
+  }
+
+  @override
+  void postFlush() {
+    if (_newest != null) {
+      _newest!.clear();
+      _newest = null;
+    }
+  }
+
+  @override
+  void purgeChanges() {
+    postFlush();
+  }
+}
+
 /// A repo is a cache/runtime modification layer for the underlying data
 /// The objects returned from the get functions are modified directly
 /// The get functions throw and this is intentional. If eventlog defined some id, then it must be
@@ -27,18 +82,23 @@ class NotesRepo {
   final Map<String, Tag> _tagMap;
   final Set<String> _touchedTags;
 
+  final _NotesOrderingImpl _ordering;
+
+  // this is another way, each one of these implementations are in thier own class
+
   NotesRepo(this._storage)
     : _noteMap = {},
       _modifiedNotes = {},
       _deletedNotes = {},
       _tagMap = {},
-      _touchedTags = {};
+      _touchedTags = {},
+      _ordering = _NotesOrderingImpl(_storage);
 
-  Note? noteNew(Id id) {
+  void noteNew(Id id) {
     final note = Note(id);
     _modifiedNotes.add(id);
     _noteMap[id] = note;
-    return note;
+    // return note;
   }
 
   Future<Note> noteGet(Id id) async {
@@ -99,8 +159,13 @@ class NotesRepo {
   // cause i will need to load all the tags into the map, with all their relationships
   // i think it would be more proper. Because when user wants to see all tags, that means they wanna see all
   // references too. Its actually going to be faster to get each one, as its just a map lookup
-  Future<List<String>> tagNames() async {
-    return _storage.tagQueryAllNames();
+  // Future<List<String>> tagNames() async {
+  //   return _storage
+  //       .tagQueryAllNames(); // nope this is bad, all have to be proxied
+  // }
+
+  Future<NoteOrder> orderingGet() async {
+    return await _ordering.ref();
   }
 
   // this is a transaction boundary
@@ -132,10 +197,13 @@ class NotesRepo {
             await tx.tagSave(tag);
           }
         }
+
+        await _ordering.flush(tx);
       });
     } catch (error) {
-      _undoLocalChanges();
-      print('failed to flush to the database');
+      _purgeLocalChanges();
+      _ordering.purgeChanges();
+      print('failed to flush to the database: $error');
       rethrow;
     } finally {
       _modifiedNotes.clear();
@@ -144,11 +212,13 @@ class NotesRepo {
       // TODO go though the _tagMap and and delete values which have 0 notes assigned to them
       // or it could be a background task, operating on a mutex
       _touchedTags.clear();
+
+      _ordering.postFlush();
     }
   }
 
   // deletes all cached data related to modified and touched things
-  void _undoLocalChanges() {
+  void _purgeLocalChanges() {
     for (var note in _modifiedNotes) {
       _noteMap.remove(note);
     }

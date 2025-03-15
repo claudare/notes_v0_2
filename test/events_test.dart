@@ -1,5 +1,7 @@
+import 'package:notes_v0_2/common/id.dart';
 import 'package:notes_v0_2/common/stream.dart';
 import 'package:notes_v0_2/notes/events.dart';
+import 'package:notes_v0_2/notes/streams.dart';
 import 'package:notes_v0_2/system/models.dart';
 import 'package:notes_v0_2/test_utils.dart';
 import 'package:test/test.dart';
@@ -18,7 +20,7 @@ void main() async {
     );
   });
   group('Event Tests', () {
-    late TestAllSystemsInOne aio; // s stands for aio Systems
+    late TestAllSystemsInOne aio;
 
     setUp(() async {
       aio = TestAllSystemsInOne();
@@ -29,25 +31,26 @@ void main() async {
       await aio.deinit();
     });
 
-    test('Create a new note stream', () async {
+    test('Create new note stream', () async {
       final noteId = aio.sysRepo.newId('note');
 
       final globalStreamId = Stream.named("global");
-      final noteStreamId = Stream.id(noteId);
 
-      await testSaveEventLogAndResolve(
-        aio.sysRepo,
-        aio.notesResolver,
-        EventLogMinimal(
-          stream: globalStreamId,
-          event: NoteNewStreamCreated(streamId: noteId),
-        ),
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(globalStreamId, NoteNewStreamCreated(streamId: noteId)),
+        flush: true,
       );
-      await aio.notesRepo.flush();
 
       // Verify that the note has been created
       final note = await aio.notesStorage.noteGet(noteId);
       expect(note, isNotNull);
+
+      // assert the ordering of the notes
+      final order = await aio.notesStorage.noteOrderGet();
+      final orderedIds = order.main.map((e) => e.id).toList();
+
+      expect(orderedIds, equals([noteId]));
     });
 
     test('Edit the body of a note', () async {
@@ -60,20 +63,14 @@ void main() async {
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: globalStreamId,
-          event: NoteNewStreamCreated(streamId: noteId),
-        ),
+        EventLogMinimal(globalStreamId, NoteNewStreamCreated(streamId: noteId)),
       );
 
       // Edit the note body
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: noteStreamId,
-          event: NoteBodyEditedFull(value: "hello world"),
-        ),
+        EventLogMinimal(noteStreamId, NoteBodyEditedFull(value: "hello world")),
       );
       await aio.notesRepo.flush();
 
@@ -96,10 +93,7 @@ void main() async {
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: globalStreamId,
-          event: NoteNewStreamCreated(streamId: noteId),
-        ),
+        EventLogMinimal(globalStreamId, NoteNewStreamCreated(streamId: noteId)),
       );
       await aio.notesRepo.flush();
 
@@ -108,10 +102,7 @@ void main() async {
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: noteStreamId,
-          event: TagAssignedToNote(tagName: tagName),
-        ),
+        EventLogMinimal(noteStreamId, TagAssignedToNote(tagName: tagName)),
       );
       await aio.notesRepo.flush();
 
@@ -138,10 +129,7 @@ void main() async {
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: globalStreamId,
-          event: NoteNewStreamCreated(streamId: noteId),
-        ),
+        EventLogMinimal(globalStreamId, NoteNewStreamCreated(streamId: noteId)),
       );
 
       // Assign a tag to the note
@@ -149,10 +137,7 @@ void main() async {
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: noteStreamId,
-          event: TagAssignedToNote(tagName: tagName),
-        ),
+        EventLogMinimal(noteStreamId, TagAssignedToNote(tagName: tagName)),
       );
       await aio.notesRepo.flush();
 
@@ -160,10 +145,7 @@ void main() async {
       await testSaveEventLogAndResolve(
         aio.sysRepo,
         aio.notesResolver,
-        EventLogMinimal(
-          stream: noteStreamId,
-          event: TagUnassignedToNote(tagName: tagName),
-        ),
+        EventLogMinimal(noteStreamId, TagUnassignedToNote(tagName: tagName)),
       );
       await aio.notesRepo.flush();
 
@@ -175,6 +157,76 @@ void main() async {
       // Verify that the tag no longer exists in the general list
       final tags = await aio.notesStorage.tagGet(tagName);
       expect(tags, isNull);
+    });
+
+    test('Reorder a note', () async {
+      final noteId1 = TestIdGenerator.newIdNumber(0);
+      final noteId2 = TestIdGenerator.newIdNumber(1);
+
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(streamGlobal, NoteNewStreamCreated(streamId: noteId1)),
+        flush: true,
+      );
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(streamGlobal, NoteNewStreamCreated(streamId: noteId2)),
+        flush: true,
+      );
+
+      var order = await aio.notesStorage.noteOrderGet();
+      var items = order.main.map((e) => e.id).toList();
+      expect(items, equals([noteId1, noteId2]));
+
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(
+          streamNoteOrder,
+          NoteReordered(noteId: noteId1, beforeNoteId: noteId2),
+        ),
+        flush: true,
+      );
+
+      order = await aio.notesStorage.noteOrderGet();
+      items = order.main.map((e) => e.id).toList();
+      expect(items, equals([noteId2, noteId1]));
+    });
+
+    test('Archive a note', () async {
+      final noteId1 = TestIdGenerator.newIdNumber(0);
+      final noteId2 = TestIdGenerator.newIdNumber(1);
+
+      final globalStreamId = Stream.named("global");
+
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(
+          globalStreamId,
+          NoteNewStreamCreated(streamId: noteId1),
+        ),
+      );
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(
+          globalStreamId,
+          NoteNewStreamCreated(streamId: noteId2),
+        ),
+      );
+
+      // assert all are in main
+      var order = await aio.notesStorage.noteOrderGet();
+      expect(order.main.length, equals(2));
+
+      await testApplyEventLog(
+        aio,
+        EventLogMinimal(streamNoteOrder, NotePinned(noteId: noteId1)),
+      );
+
+      order = await aio.notesStorage.noteOrderGet();
+      expect(order.pinned.length, equals(1));
+      expect(order.pinned.single.id, equals(noteId1));
+      expect(order.main.length, equals(1));
+      expect(order.main.single.id, equals(noteId2));
     });
   });
 }

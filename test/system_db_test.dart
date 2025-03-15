@@ -25,7 +25,7 @@ void main() {
       // Append some test events
       for (int i = 0; i < 5; i++) {
         final event = TestEvent(value: 'event_$i');
-        final eventLogMinimal = EventLogMinimal(stream: stream, event: event);
+        final eventLogMinimal = EventLogMinimal(stream, event);
         await systemDb.eventLogAppend(eventLogMinimal);
       }
     });

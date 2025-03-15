@@ -18,6 +18,24 @@ Future<void> testSaveEventLogAndResolve(
   await resolver.handleEvent(min.stream, notesEvent);
 }
 
+// more convenient test function
+// tests default to flushing after every operation
+Future<void> testApplyEventLog(
+  TestAllSystemsInOne aio,
+  EventLogMinimal min, {
+  flush = true,
+  appendLog = false,
+}) async {
+  if (appendLog) {
+    await aio.sysRepo.eventLogAppend(min);
+  }
+  final notesEvent = min.event as NotesEvent;
+  await aio.notesResolver.handleEvent(min.stream, notesEvent);
+  if (flush) {
+    await aio.notesRepo.flush();
+  }
+}
+
 class TestAllSystemsInOne {
   late Db sysDb;
   late SystemRepo sysRepo;

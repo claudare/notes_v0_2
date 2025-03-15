@@ -8,6 +8,8 @@ class Node<T> {
 
 // TODO: move hashmap out of here
 // TODO: add quick lookup index (which is serializeable too!)
+// TOOD: this can use [identical] fuction to see start/end
+// TODO: add _first to efficienty append to the beginning of the list
 class DoublyLinkedList<T> {
   final Map<T, Node<T>> _map;
   Node<T>? _last;
@@ -20,7 +22,6 @@ class DoublyLinkedList<T> {
   void append(T id) {
     final newNode = Node(id);
     _map[id] = newNode;
-
     if (_last == null) {
       _last = newNode;
       return;

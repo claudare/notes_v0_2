@@ -1,4 +1,5 @@
 import 'package:notes_v0_2/common/id.dart';
+import 'package:notes_v0_2/notes/streams.dart';
 import 'package:notes_v0_2/system/models.dart';
 // following https://dart.dev/language/class-modifiers#sealed
 
@@ -8,7 +9,8 @@ sealed class NotesEvent extends AnyEvent {
         NoteNewStreamCreated._type: NoteNewStreamCreated.fromMap,
         NoteBodyEditedFull._type: NoteBodyEditedFull.fromMap,
         NoteReordered._type: NoteReordered.fromMap,
-        NoteArchived._type: NoteArchived.fromMap,
+        NotePinned._type: NotePinned.fromMap,
+        NoteUnarchived._type: NoteUnarchived.fromMap,
         TagAssignedToNote._type: TagAssignedToNote.fromMap,
         TagUnassignedToNote._type: TagUnassignedToNote.fromMap,
         TestEvent._type: TestEvent.fromMap,
@@ -43,6 +45,11 @@ final class NoteNewStreamCreated extends NotesEvent {
     '_type': _type,
     'streamId': streamId.toString(),
   };
+
+  // @override
+  // EventLogMinimal toLog() {
+  //   return EventLogMinimal(stream: streamGlobal, event: this);
+  // }
 }
 
 class NoteBodyEditedFull extends NotesEvent {
@@ -57,11 +64,16 @@ class NoteBodyEditedFull extends NotesEvent {
 
   @override
   Map<String, dynamic> toMap() => {'_type': _type, 'value': value};
+
+  // @override
+  // EventLogMinimal toLog() {
+  //   return EventLogMinimal(stream: streamNote, event: this);
+  // }
 }
 
 class NoteReordered extends NotesEvent {
-  final Id noteId;
   // if beforeNoteId is null, it means it goes to the top
+  final Id noteId;
   final Id? beforeNoteId;
 
   const NoteReordered({required this.noteId, required this.beforeNoteId});
@@ -84,13 +96,29 @@ class NoteReordered extends NotesEvent {
   };
 }
 
-class NoteArchived extends NotesEvent {
-  const NoteArchived();
+class NotePinned extends NotesEvent {
+  // TODO: also save the index of the position for restore functionality
+  final Id noteId;
 
-  static const String _type = 'noteArchived';
+  const NotePinned({required this.noteId});
+
+  static const String _type = 'notePinned';
 
   @override
-  NoteArchived.fromMap(Map<String, dynamic> json);
+  NotePinned.fromMap(Map<String, dynamic> json)
+    : noteId = Id.fromString(json['noteId']);
+
+  @override
+  Map<String, dynamic> toMap() => {'_type': _type, 'noteId': noteId.toString()};
+}
+
+class NoteUnarchived extends NotesEvent {
+  const NoteUnarchived();
+
+  static const String _type = 'noteUnarchived';
+
+  @override
+  NoteUnarchived.fromMap(Map<String, dynamic> json);
 
   @override
   Map<String, dynamic> toMap() => {'_type': _type};

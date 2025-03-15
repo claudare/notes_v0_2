@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 import 'package:notes_v0_2/notes/exceptions.dart';
+import 'package:notes_v0_2/notes/model_ordering.dart';
 import 'package:notes_v0_2/notes/models.dart';
 import 'package:notes_v0_2/common/id.dart';
 import 'package:sqlite_async/sqlite_async.dart';
@@ -23,13 +24,30 @@ final _migrations = SqliteMigrations(migrationTable: "app_migrations")..add(
         data BLOB NOT NULL
       );
     ''');
+
+    await tx.execute('''
+      CREATE TABLE note_order (
+        value BLOB NOT NULL
+      );
+    ''');
+    // insert the default empty value
+    await tx.execute(
+      '''
+      INSERT INTO note_order (value) VALUES(?);
+    ''',
+      [jsonEncode(NoteOrder().toJson())],
+    );
   }),
 );
 
-// This does interfacing with the database
-// If support for multiple databases is required,
-// then StorageImpl can be passed to interface properly.
-// I need to figureout where the transaction boundary is.
+/// [NotesStorage] interfaces with the database
+/// If support for multiple databases is required,
+/// then StorageImpl can be passed to interface properly.
+/// This is done so that in my main code there is NO SQL statements... ever.
+/// - Repo can manage memory for less ram usage and fewer database access aka better performance.
+/// - Reading complex data-structures does not need constant serialization.
+/// - it allows to batch the entire replay into a single database trasaction aka initialization performance.
+/// - complex storage scenarios (like chunked datastructures) are implemented in a repo, not leaking domains.
 class NotesStorage {
   SqliteDatabase db;
 
@@ -86,6 +104,11 @@ class NotesStorage {
     final rows = await db.getAll('SELECT name FROM app_tag;');
 
     return rows.map((row) => row['name'] as String).toList();
+  }
+
+  Future<NoteOrder> noteOrderGet() async {
+    final row = await db.get("SELECT value FROM note_order LIMIT 1;");
+    return NoteOrder.fromJson(jsonDecode(row['value']));
   }
 
   Future<void> dumpPrint() async {
@@ -155,5 +178,11 @@ class NotesMutationTransaction {
     if (row.isEmpty) {
       throw ItemNotFoundException('tag with name "$tagName"');
     }
+  }
+
+  Future<void> noteOrderSave(NoteOrder ordering) async {
+    await _tx.execute('UPDATE note_order SET value = ?;', [
+      jsonEncode(ordering.toJson()),
+    ]);
   }
 }

@@ -9,10 +9,10 @@ void main() {
   final id2 = TestIdGenerator.newIdNumber(1);
   final id3 = TestIdGenerator.newIdNumber(2);
   group('NoteOrdering', () {
-    late NoteOrdering noteOrdering;
+    late NoteOrder noteOrdering;
 
     setUp(() {
-      noteOrdering = NoteOrdering();
+      noteOrdering = NoteOrder();
     });
 
     test('appends', () {
@@ -45,7 +45,16 @@ void main() {
       noteOrdering.remove(id);
       expect(noteOrdering.main.isEmpty, isTrue);
     });
+    test('serialization empty', () {
+      final order = NoteOrder();
 
+      final emptyJson = jsonEncode(order.toJson());
+      expect(emptyJson, equals('{"main":[],"pinned":[]}'));
+
+      final result = NoteOrder.fromJson(jsonDecode(emptyJson));
+
+      expect(order.main, equals(result.main));
+    });
     test('serialization', () {
       final jsonRaw = '''
         {
@@ -56,7 +65,7 @@ void main() {
       final jsonCompacted = jsonEncode(jsonDecode(jsonRaw));
 
       final map = jsonDecode(jsonCompacted);
-      final jsonResult = jsonEncode(NoteOrdering.fromJson(map).toJson());
+      final jsonResult = jsonEncode(NoteOrder.fromJson(map).toJson());
 
       expect(jsonCompacted, equals(jsonResult));
     });
