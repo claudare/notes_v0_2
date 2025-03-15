@@ -1,5 +1,5 @@
 import 'package:notes_v0_2/common/id.dart';
-import 'package:notes_v0_2/common/ordering.dart';
+import 'package:notes_v0_2/common/doubly_linked_list.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -9,10 +9,10 @@ void main() {
     final id3 = TestIdGenerator.newIdNumber(2);
     final id4 = TestIdGenerator.newIdNumber(3);
 
-    late Ordering<Id> ordering;
+    late DoublyLinkedList<Id> ordering;
     setUp(() {
       ordering =
-          Ordering()
+          DoublyLinkedList()
             ..append(id1)
             ..append(id2)
             ..append(id3);
@@ -85,7 +85,7 @@ void main() {
       expect(ordering.count, equals(4));
     });
     test('insert from empty', () {
-      final fresh = Ordering();
+      final fresh = DoublyLinkedList();
       fresh.insert(id1, null);
       fresh.insert(id2, id1);
 

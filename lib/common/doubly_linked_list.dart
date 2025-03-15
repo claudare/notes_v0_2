@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 class Node<T> {
   final T id;
   Node<T>? next;
@@ -8,11 +6,13 @@ class Node<T> {
   Node(this.id, {this.next, this.prev});
 }
 
-class Ordering<T> {
+// TODO: move hashmap out of here
+// TODO: add quick lookup index (which is serializeable too!)
+class DoublyLinkedList<T> {
   final Map<T, Node<T>> _map;
   Node<T>? _last;
 
-  Ordering() : _map = {};
+  DoublyLinkedList() : _map = {};
 
   int get count => _map.length;
 
@@ -170,3 +170,5 @@ class Ordering<T> {
     return result;
   }
 }
+
+// instead use LinkedList from collection?
