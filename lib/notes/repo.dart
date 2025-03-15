@@ -5,6 +5,7 @@
 
 import 'package:notes_v0_2/common/id.dart';
 import 'package:notes_v0_2/notes/exceptions.dart';
+import 'package:notes_v0_2/notes/model_ordering.dart';
 import 'package:notes_v0_2/notes/models.dart';
 import 'package:notes_v0_2/notes/storage.dart';
 
@@ -106,31 +107,32 @@ class NotesRepo {
   // [flush] performs its operations in the transaction
   Future<void> flush() async {
     // something like storage.runInTransaction((tx){})
-    //
     try {
-      for (var noteId in _modifiedNotes) {
-        final note = _noteMap[noteId];
-        assert(note != null, 'notes stored on the map cant be null');
+      await _storage.runMutationsInTrasaction((tx) async {
+        for (var noteId in _modifiedNotes) {
+          final note = _noteMap[noteId];
+          assert(note != null, 'notes stored on the map cant be null');
 
-        await _storage.noteSave(note!);
-      }
-      for (var noteId in _deletedNotes) {
-        await _storage.noteDelete(noteId);
-      }
-
-      for (var tagName in _touchedTags) {
-        final tag = _tagMap[tagName];
-        assert(tag != null, 'tags stored on the map cant be null');
-
-        // delete it from the database if its empty
-        if (tag!.count == 0) {
-          // also need to evict it from cache
-          // this is getting a bit like pasta food
-          await _storage.tagDelete(tagName);
-        } else {
-          await _storage.tagSave(tag);
+          await tx.noteSave(note!);
         }
-      }
+        for (var noteId in _deletedNotes) {
+          await tx.noteDelete(noteId);
+        }
+
+        for (var tagName in _touchedTags) {
+          final tag = _tagMap[tagName];
+          assert(tag != null, 'tags stored on the map cant be null');
+
+          // delete it from the database if its empty
+          if (tag!.count == 0) {
+            // also need to evict it from cache
+            // this is getting a bit like pasta food
+            await tx.tagDelete(tagName);
+          } else {
+            await tx.tagSave(tag);
+          }
+        }
+      });
     } catch (error) {
       _undoLocalChanges();
       print('failed to flush to the database');

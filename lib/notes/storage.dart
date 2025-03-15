@@ -41,6 +41,15 @@ class NotesStorage {
     await _migrations.migrate(db);
   }
 
+  Future<void> runMutationsInTrasaction(
+    Future<void> Function(NotesMutationTransaction tx) fn,
+  ) async {
+    // just wrap it up
+    await db.writeTransaction((sqliteTx) async {
+      await fn(NotesMutationTransaction(sqliteTx));
+    });
+  }
+
   Future<Note?> noteGet(Id id) async {
     log.finer('getting note $id');
     final noteRes = await db.getOptional(
@@ -58,36 +67,6 @@ class NotesStorage {
     return note;
   }
 
-  /// save is an upsert. all functions here should have tx and nontx versions?
-  /// maybe all are tx, and the resolver actually holds the database? it will never
-  /// use it directly, but it will need it to trasact many changes
-  static Future<void> _noteSave(SqliteWriteContext tx, Note note) async {
-    await tx.execute(
-      'INSERT OR REPLACE INTO app_note (id, data) VALUES (?, ?);',
-      [note.noteId.toString(), jsonEncode(note.toMap())],
-    );
-  }
-
-  Future<void> noteSave(Note note) async {
-    log.finer("saving note $note");
-    await _noteSave(db, note);
-  }
-
-  static Future<void> _noteDelete(SqliteWriteContext tx, Id id) async {
-    final res = await tx.execute(
-      'DELETE FROM app_note WHERE id = ? RETURNING id;',
-      [id.toString()],
-    );
-    if (res.isEmpty) {
-      throw ItemNotFoundException(id.toString());
-    }
-  }
-
-  Future<void> noteDelete(Id id) async {
-    log.finer("deleting note $id");
-    return await _noteDelete(db, id);
-  }
-
   Future<Tag?> tagGet(String name) async {
     log.finer('getting tag $name');
     final row = await db.getOptional(
@@ -100,33 +79,6 @@ class NotesStorage {
       return null;
     }
     return Tag.fromJson(jsonDecode(row['data']));
-  }
-
-  static Future<void> _tagSave(SqliteWriteContext tx, Tag tag) async {
-    await tx.execute(
-      'INSERT OR REPLACE INTO app_tag (name, data) VALUES (?, ?);',
-      [tag.name, jsonEncode(tag)],
-    );
-  }
-
-  Future<void> tagSave(Tag tag) async {
-    log.fine('saving tag $tag');
-    _tagSave(db, tag);
-  }
-
-  static Future<void> _tagDelete(SqliteWriteContext tx, String tagName) async {
-    final row = await tx.execute(
-      'DELETE FROM app_tag WHERE name = ? RETURNING name;',
-      [tagName],
-    );
-    if (row.isEmpty) {
-      throw ItemNotFoundException('tag with name "$tagName"');
-    }
-  }
-
-  Future<void> tagDelete(String tagName) async {
-    log.fine('deleting tag $tagName');
-    _tagDelete(db, tagName);
   }
 
   // functions which are labeled as xQuery are optimized/simple queries
@@ -160,5 +112,48 @@ class NotesStorage {
     }
 
     print('-----DATABASE DUMP END-----');
+  }
+}
+
+class NotesMutationTransaction {
+  final SqliteWriteContext _tx;
+
+  const NotesMutationTransaction(this._tx);
+
+  /// save is an upsert. all functions here should have tx and nontx versions?
+  /// maybe all are tx, and the resolver actually holds the database? it will never
+  /// use it directly, but it will need it to trasact many changes
+  Future<void> noteSave(Note note) async {
+    await _tx.execute(
+      'INSERT OR REPLACE INTO app_note (id, data) VALUES (?, ?);',
+      [note.noteId.toString(), jsonEncode(note.toMap())],
+    );
+  }
+
+  Future<void> noteDelete(Id id) async {
+    final res = await _tx.execute(
+      'DELETE FROM app_note WHERE id = ? RETURNING id;',
+      [id.toString()],
+    );
+    if (res.isEmpty) {
+      throw ItemNotFoundException(id.toString());
+    }
+  }
+
+  Future<void> tagSave(Tag tag) async {
+    await _tx.execute(
+      'INSERT OR REPLACE INTO app_tag (name, data) VALUES (?, ?);',
+      [tag.name, jsonEncode(tag)],
+    );
+  }
+
+  Future<void> tagDelete(String tagName) async {
+    final row = await _tx.execute(
+      'DELETE FROM app_tag WHERE name = ? RETURNING name;',
+      [tagName],
+    );
+    if (row.isEmpty) {
+      throw ItemNotFoundException('tag with name "$tagName"');
+    }
   }
 }

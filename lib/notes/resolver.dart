@@ -24,6 +24,8 @@ class NotesResolver {
 
         break;
       case NoteReordered():
+        final noteId = inStream.getIdInScopeOrThrow("note");
+
         throw UnimplementedError();
         break;
       case NoteArchived():
